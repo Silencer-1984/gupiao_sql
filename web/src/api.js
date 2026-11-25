@@ -16,7 +16,8 @@ export const api = {
   dailyJob: () => j('/daily_job', { method: 'POST' }),
   tempHistory: (freq = 'D') => j(`/temperature/history?freq=${freq}`),
   trendMeta: () => j('/trend/meta'),
-  trend: ({ code, range, gran, mode, ind, pctWin, bench }) =>
+  trend: ({ code, range, gran, mode, ind, pctWin, bench, pct }) =>
     j(`/trend?code=${encodeURIComponent(code)}&range=${range}&gran=${gran}&mode=${mode}`
-      + `&ind=${encodeURIComponent(ind || '')}&pct_win=${pctWin}&bench=${encodeURIComponent(bench || '')}`),
+      + `&ind=${encodeURIComponent(ind || '')}&pct_win=${pctWin}&bench=${encodeURIComponent(bench || '')}`
+      + `&pct=${encodeURIComponent(pct || '')}`),
 }

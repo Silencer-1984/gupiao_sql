@@ -305,9 +305,17 @@ def meta():
 
 
 def trend(code="000300", rng="1Y", gran=None, mode="pct", inds=None,
-          pct_win="3Y", bench="", pct_levels=(20, 50, 80)):
-    """主入口：返回主序列（涨跌幅 / 累积收益）、指标副轴序列、分位标准线、对比指数。"""
+          pct_win="3Y", bench="", pct=None, pct_levels=(20, 50, 80)):
+    """主入口：返回主序列、指标副轴序列、分位标准线、对比指数。
+
+    inds 控制折线（最多 2 条）；pct 独立控制分位线，可不含在 inds 中。
+    """
     inds = [k for k in (inds or []) if k][:2]
+    if pct is None:
+        pct_keys = [k for k in inds if k in PCT_IND]
+    else:
+        pct_keys = [k for k in pct if k in PCT_IND]
+    all_keys = list(dict.fromkeys(inds + pct_keys))
     c = conn()
     price = _raw_price(c, code)
     if price is None or not len(price):
@@ -353,40 +361,41 @@ def trend(code="000300", rng="1Y", gran=None, mode="pct", inds=None,
     # ---- 指标副轴 ----
     out_ind, ref_lines, stats_ind = [], [], {}
     nwin = PCT_WINDOWS.get(pct_win)
-    for k in inds:
+    for k in all_keys:
         s_daily = _ind_series(c, code, k, price, bond)
         if s_daily is None or not len(s_daily.dropna()):
             continue
-        # 画线用：与展示区间对齐（区间外的历史不画）
-        s = s_daily.reindex(price.index).ffill()
-        if rule:
-            s = s.resample(rule).last()
-        s = s.reindex(series.index).ffill()
-        pts = [{"date": pd.Timestamp(series["_lbl"].iloc[n]).strftime("%Y-%m-%d"),
-                "value": None if pd.isna(v) else round(float(v), IND[k]["digits"])}
-               for n, v in enumerate(s.tolist())]
-        spec_k = dict(IND[k])
-        spec_k.update({"key": k, "points": pts, "pct_line": k in PCT_IND})
-        out_ind.append(spec_k)
-
-        # 分位标准线：用全历史（按窗口取 tail）计算分位对应的指标数值，画在同一根副轴上
-        if k in PCT_IND:
-            full = s_daily.dropna()
-            base = full.tail(nwin) if nwin else full
-            if len(base) >= 60:
-                for q in pct_levels:
-                    v = _pct_value(base, q)
-                    if v is None:
-                        continue
-                    ref_lines.append({
-                        "ind": k, "q": q, "value": round(v, IND[k]["digits"]),
-                        "label": "%s %d%% 分位" % (
-                            {"1Y": "近1年", "3Y": "近3年", "5Y": "近5年", "ALL": "全部"}[pct_win]
-                            if pct_win in PCT_WINDOWS else pct_win, q),
-                    })
-        # 当前值在窗口内的分位（与标准线同口径）
         full = s_daily.dropna()
-        if len(full) >= 60:
+
+        # 折线：只有被选入 inds 的指标才输出曲线
+        if k in inds:
+            s = s_daily.reindex(price.index).ffill()
+            if rule:
+                s = s.resample(rule).last()
+            s = s.reindex(series.index).ffill()
+            pts = [{"date": pd.Timestamp(series["_lbl"].iloc[n]).strftime("%Y-%m-%d"),
+                    "value": None if pd.isna(v) else round(float(v), IND[k]["digits"])}
+                   for n, v in enumerate(s.tolist())]
+            spec_k = dict(IND[k])
+            spec_k.update({"key": k, "points": pts, "pct_line": k in PCT_IND})
+            out_ind.append(spec_k)
+
+        # 分位标准线：独立于折线，由 pct 参数单独控制
+        if k in pct_keys and len(full) >= 60:
+            base = full.tail(nwin) if nwin else full
+            for q in pct_levels:
+                v = _pct_value(base, q)
+                if v is None:
+                    continue
+                ref_lines.append({
+                    "ind": k, "q": q, "value": round(v, IND[k]["digits"]),
+                    "label": "%s %d%% 分位" % (
+                        {"1Y": "近1年", "3Y": "近3年", "5Y": "近5年", "ALL": "全部"}[pct_win]
+                        if pct_win in PCT_WINDOWS else pct_win, q),
+                })
+
+        # 当前值分位：只对折线指标计算，用于统计卡展示
+        if k in inds and len(full) >= 60:
             base = full.tail(nwin) if nwin else full
             stats_ind[k] = (round(float(full.iloc[-1]), IND[k]["digits"]),
                             round(float((base < full.iloc[-1]).mean() * 100), 0))

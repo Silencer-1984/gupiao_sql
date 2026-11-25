@@ -5,19 +5,19 @@ import { api } from '../api.js'
 
 const { Text } = Typography
 
-const RED = '#e04b4b'
-const GREEN = '#129d5b'
-const IDX_COLOR = '#2563EB'
-const BENCH_COLOR = '#EA580C'
-const IND_COLORS = ['#9333EA', '#0891B2']
-const QCOLORS = { 20: '#16A34A', 50: '#EAB308', 80: '#DC2626' }
+const RED = '#C0392B'
+const GREEN = '#12805C'
+const IDX_COLOR = '#2B5CE6'
+const BENCH_COLOR = '#B26B3A'
+const IND_COLORS = ['#7C5CE6', '#0E9F9F']
+const QCOLORS = { 20: '#2E9E6B', 50: '#C99A2E', 80: '#C05252' }
 
 const fmt = (v, d = 2) => (v == null ? '—' : v.toLocaleString('zh-CN', { minimumFractionDigits: d, maximumFractionDigits: d }))
 const pct = (v) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(2)}%`)
 const swatch = (color, dash) => (
   <i style={{
-    display: 'inline-block', width: 12, height: 3, borderRadius: 2, marginRight: 5, verticalAlign: 'middle',
-    background: dash ? `repeating-linear-gradient(90deg,${color} 0 4px,transparent 4px 7px)` : color,
+    display: 'inline-block', width: 14, height: 3, borderRadius: 2, marginRight: 6, verticalAlign: 'middle',
+    background: dash ? `repeating-linear-gradient(90deg,${color} 0 5px,transparent 5px 8px)` : color,
   }} />
 )
 
@@ -30,6 +30,7 @@ const readParams = () => {
     gran: p.get('gran') || '',
     mode: (p.get('mode') === 'pct' ? 'point' : p.get('mode')) || '',
     ind: p.get('ind'),
+    pct: p.get('pct'),
     pct_win: p.get('pct_win') || '',
     bench: p.get('bench'),
   }
@@ -43,6 +44,7 @@ export default function Trend() {
   const [gran, setGran] = useState(init.gran || 'W')
   const [mode, setMode] = useState(init.mode || 'point')
   const [inds, setInds] = useState(init.ind != null ? init.ind.split(',').filter(Boolean) : ['pe_ttm'])
+  const [pcts, setPcts] = useState(init.pct != null ? init.pct.split(',').filter(Boolean) : ['pe_ttm'])
   const [pctWin, setPctWin] = useState(init.pct_win || '3Y')
   const [bench, setBench] = useState(init.bench || '')
   const [data, setData] = useState(null)
@@ -52,40 +54,55 @@ export default function Trend() {
   useEffect(() => { api.trendMeta().then(setMeta).catch((e) => setErr(String(e))) }, [])
 
   useEffect(() => {
-    const q = new URLSearchParams({ code, range, gran, mode, ind: inds.join(','), pct_win: pctWin, bench })
+    const q = new URLSearchParams({ code, range, gran, mode, ind: inds.join(','),
+      pct: pcts.join(','), pct_win: pctWin, bench })
     window.history.replaceState(null, '', `#/trend?${q.toString()}`)
-  }, [code, range, gran, mode, inds, pctWin, bench])
+  }, [code, range, gran, mode, inds, pcts, pctWin, bench])
 
   const pickIndex = (c) => {
     setCode(c)
     const info = meta?.by_code?.[c]
     if (!info) return
     const valid = info.indicators.map((i) => i.key)
+    const pValid = info.indicators.filter((i) => i.pct_line).map((i) => i.key)
     const keep = inds.filter((k) => valid.includes(k))
     setInds(keep.length ? keep : valid.slice(0, 1))
+    const keepPct = pcts.filter((k) => pValid.includes(k))
+    setPcts(keepPct.length ? keepPct : pValid.slice(0, 1))
   }
 
   useEffect(() => {
     if (!code) return
     setLoading(true)
-    api.trend({ code, range, gran, mode, ind: inds.join(','), pctWin, bench })
+    api.trend({ code, range, gran, mode, ind: inds.join(','), pct: pcts.join(','), pctWin, bench })
       .then((r) => { setData(r); setErr('') })
       .catch((e) => { setErr(String(e)); setData(null) })
       .finally(() => setLoading(false))
-  }, [code, range, gran, mode, inds, pctWin, bench])
+  }, [code, range, gran, mode, inds, pcts, pctWin, bench])
 
   const info = meta?.by_code?.[code]
   const list = meta?.indexes || []
   const indOptions = info?.indicators || []
+  const pctOptions = indOptions.filter((o) => o.pct_line)
   const pts = data?.points || []
   const stats = data?.stats || {}
   const refLines = data?.ref_lines || []
+  const labelOf = (key) => indOptions.find((o) => o.key === key)
 
   const toggleInd = (k) => setInds((cur) => {
     if (cur.includes(k)) return cur.filter((x) => x !== k)
     if (cur.length >= 2) return [cur[1], k]
     return [...cur, k]
   })
+  const togglePct = (k) => setPcts((cur) => cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k])
+
+  // 轴顺序：曲线指标在前，只有分位线的指标在后；颜色按轴序统一
+  const axisKeys = useMemo(() => {
+    const keys = (data?.indicators || []).map((o) => o.key)
+    refLines.forEach((r) => { if (!keys.includes(r.ind)) keys.push(r.ind) })
+    return keys
+  }, [data, refLines])
+  const colorOf = (k) => IND_COLORS[axisKeys.indexOf(k) % IND_COLORS.length] || IND_COLORS[0]
 
   // ---------- 主图 ----------
   const option = useMemo(() => {
@@ -98,13 +115,15 @@ export default function Trend() {
       axisLine: { show: true, lineStyle: { color: IDX_COLOR } },
       axisTick: { show: false },
       axisLabel: { color: IDX_COLOR, fontSize: 11, formatter: mode === 'cum' ? '{value}%' : undefined },
-      splitLine: { lineStyle: { color: '#eef2f7' } },
+      splitLine: { lineStyle: { color: '#EEF1F6' } },
       scale: true,
     }]
-    const indList = data?.indicators || []
-    indList.forEach((o, i) => {
-      const vals = o.points.map((p) => p.value).filter((v) => v != null)
-      const mine = refLines.filter((r) => r.ind === o.key)
+    axisKeys.forEach((k, i) => {
+      const o = labelOf(k)
+      if (!o) return
+      const spec = data?.indicators?.find((x) => x.key === k)
+      const vals = (spec?.points || []).map((p) => p.value).filter((v) => v != null)
+      const mine = refLines.filter((r) => r.ind === k)
       let lo = vals.length ? Math.min(...vals) : null
       let hi = vals.length ? Math.max(...vals) : null
       mine.forEach((r) => { lo = lo == null ? r.value : Math.min(lo, r.value); hi = hi == null ? r.value : Math.max(hi, r.value) })
@@ -116,12 +135,12 @@ export default function Trend() {
       }
       axes.push({
         type: 'value', name: o.label,
-        nameTextStyle: { color: IND_COLORS[i], fontSize: 11, align: 'left', padding: [0, 0, 2, 0] },
+        nameTextStyle: { color: colorOf(k), fontSize: 11, align: 'left', padding: [0, 0, 2, 0] },
         nameGap: 26,
-        position: 'right', offset: i * 56,
-        axisLine: { show: true, lineStyle: { color: IND_COLORS[i] } },
+        position: 'right', offset: i * 62,
+        axisLine: { show: true, lineStyle: { color: colorOf(k) } },
         axisTick: { show: false },
-        axisLabel: { color: IND_COLORS[i], fontSize: 11 },
+        axisLabel: { color: colorOf(k), fontSize: 11 },
         splitLine: { show: false }, scale: true, min, max,
       })
     })
@@ -133,7 +152,7 @@ export default function Trend() {
         showSymbol: false, smooth: 0.1, lineStyle: { width: 2.4, color: IDX_COLOR },
         areaStyle: {
           color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [{ offset: 0, color: 'rgba(37,99,235,0.10)' }, { offset: 1, color: 'rgba(37,99,235,0)' }] },
+            colorStops: [{ offset: 0, color: 'rgba(43,92,230,0.10)' }, { offset: 1, color: 'rgba(43,92,230,0)' }] },
         }, z: 2,
       })
     } else {
@@ -141,63 +160,64 @@ export default function Trend() {
         name: '累积收益', type: 'line', data: pts.map((p) => p.cum),
         showSymbol: false, smooth: 0.12, lineStyle: { width: 2.4, color: IDX_COLOR },
         markLine: { silent: true, symbol: 'none', label: { show: false },
-          lineStyle: { color: '#cbd5e1', type: 'dashed' }, data: [{ yAxis: 0 }] }, z: 2,
+          lineStyle: { color: '#C9D1DD', type: 'dashed' }, data: [{ yAxis: 0 }] }, z: 2,
       })
     }
-    indList.forEach((o, i) => {
-      const mine = refLines.filter((r) => r.ind === o.key)
+
+    axisKeys.forEach((k, i) => {
+      const spec = data?.indicators?.find((x) => x.key === k)
+      const o = labelOf(k)
+      const mine = refLines.filter((r) => r.ind === k)
+      const markLine = mine.length ? {
+        silent: true, symbol: 'none',
+        data: mine.map((r) => ({
+          yAxis: r.value,
+          lineStyle: { color: QCOLORS[r.q], type: 'dashed', width: 1.5 },
+          label: {
+            formatter: `${r.q}% ${fmt(r.value, 2)}${o?.unit || ''}`,
+            position: i === 0 ? 'insideEndTop' : 'insideStartTop', fontSize: 10.5,
+            color: QCOLORS[r.q], backgroundColor: 'rgba(255,255,255,.9)', padding: [1, 3],
+          },
+        })),
+      } : undefined
+      // 曲线指标：画线 + 分位线；仅分位指标：空序列只承载分位线
       series.push({
-        name: o.label, type: 'line', yAxisIndex: i + 1,
-        data: o.points.map((p) => p.value), showSymbol: false, connectNulls: true, smooth: 0.1,
-        lineStyle: { width: 2, color: IND_COLORS[i] }, itemStyle: { color: IND_COLORS[i] }, z: 4,
-        markLine: mine.length ? {
-          silent: true, symbol: 'none',
-          data: mine.map((r) => ({
-            yAxis: r.value,
-            lineStyle: { color: QCOLORS[r.q] || IND_COLORS[i], type: 'dashed', width: 1.6 },
-            label: {
-              formatter: `${r.q}% ${fmt(r.value, 2)}${o.unit || ''}`,
-              position: i === 0 ? 'insideEndTop' : 'insideStartTop', fontSize: 10.5,
-              color: QCOLORS[r.q] || IND_COLORS[i],
-              backgroundColor: 'rgba(255,255,255,.88)', padding: [1, 3],
-            },
-          })),
-        } : undefined,
+        name: o?.label || k, type: 'line', yAxisIndex: i + 1,
+        data: spec ? spec.points.map((p) => p.value) : [],
+        showSymbol: false, connectNulls: true, smooth: 0.1,
+        lineStyle: { width: 2, color: colorOf(k), opacity: spec ? 1 : 0 },
+        itemStyle: { color: colorOf(k) }, z: 4, markLine,
       })
     })
 
     return {
       animationDuration: 420,
-      grid: { left: 6, right: 10 + 62 * indList.length, top: 58, bottom: 34, containLabel: true },
+      grid: { left: 6, right: 12 + 64 * axisKeys.length, top: 58, bottom: 34, containLabel: true },
       tooltip: {
-        trigger: 'axis', backgroundColor: 'rgba(255,255,255,.97)', borderColor: '#e6ebf2', borderWidth: 1,
-        padding: [8, 12], textStyle: { color: '#1f2733', fontSize: 12 },
+        trigger: 'axis', backgroundColor: 'rgba(255,255,255,.97)', borderColor: '#E6EAF0', borderWidth: 1,
+        padding: [8, 12], textStyle: { color: '#1F2733', fontSize: 12 },
         formatter: (ps) => {
           const p = pts[ps[0].dataIndex]
           if (!p) return ''
           const rows = [`<div style="font-weight:600;margin-bottom:4px">${p.date}</div>`, `<div>收盘 <b>${fmt(p.close)}</b></div>`]
           if (p.pct != null) rows.push(`<div>涨跌 <b style="color:${p.pct >= 0 ? RED : GREEN}">${pct(p.pct)}</b></div>`)
           if (p.cum != null) rows.push(`<div>区间累积 <b>${pct(p.cum)}</b></div>`)
-          indList.forEach((o) => {
+          data.indicators.forEach((o) => {
             const v = o.points[ps[0].dataIndex]?.value
-            if (v != null) {
-              const q = refLines.filter((r) => r.ind === o.key)
-              const tag = q.length ? ` <span style="color:#94a3b8">(${q.map((r) => `${r.q}%:${fmt(r.value, 2)}`).join(' / ')})</span>` : ''
-              rows.push(`<div>${o.label} <b>${fmt(v)}${o.unit || ''}</b>${tag}</div>`)
-            }
+            if (v != null) rows.push(`<div>${o.label} <b>${fmt(v)}${o.unit || ''}</b></div>`)
           })
           return rows.join('')
         },
       },
-      axisPointer: { type: 'line', lineStyle: { color: '#cbd5e1', type: 'dashed' } },
+      axisPointer: { type: 'line', lineStyle: { color: '#C9D1DD', type: 'dashed' } },
       xAxis: {
         type: 'category', data: dates, boundaryGap: false,
-        axisLine: { lineStyle: { color: '#e6ebf2' } }, axisTick: { show: false },
-        axisLabel: { color: '#98a3b3', fontSize: 11, hideOverlap: true },
+        axisLine: { lineStyle: { color: '#E6EAF0' } }, axisTick: { show: false },
+        axisLabel: { color: '#98A3B3', fontSize: 11, hideOverlap: true },
       },
       yAxis: axes, series,
     }
-  }, [pts, data, mode, refLines])
+  }, [pts, data, mode, refLines, axisKeys, labelOf, colorOf])
 
   // ---------- 对比图 ----------
   const benchOption = useMemo(() => {
@@ -209,8 +229,8 @@ export default function Trend() {
       animationDuration: 420,
       grid: { left: 6, right: 6, top: 42, bottom: 30, containLabel: true },
       tooltip: {
-        trigger: 'axis', backgroundColor: 'rgba(255,255,255,.97)', borderColor: '#e6ebf2', borderWidth: 1,
-        padding: [6, 10], textStyle: { color: '#1f2733', fontSize: 12 },
+        trigger: 'axis', backgroundColor: 'rgba(255,255,255,.97)', borderColor: '#E6EAF0', borderWidth: 1,
+        padding: [6, 10], textStyle: { color: '#1F2733', fontSize: 12 },
         formatter: (ps) => {
           const i = ps[0].dataIndex
           const d = dates[i]
@@ -225,17 +245,17 @@ export default function Trend() {
               (bp != null ? ` <span style="color:${bp >= 0 ? RED : GREEN}">${pct(bp)}</span>` : '') + '</div>' : '')
         },
       },
-      axisPointer: { type: 'line', lineStyle: { color: '#cbd5e1', type: 'dashed' } },
+      axisPointer: { type: 'line', lineStyle: { color: '#C9D1DD', type: 'dashed' } },
       xAxis: {
         type: 'category', data: dates, boundaryGap: false,
-        axisLine: { lineStyle: { color: '#e6ebf2' } }, axisTick: { show: false },
-        axisLabel: { color: '#98a3b3', fontSize: 11, hideOverlap: true },
+        axisLine: { lineStyle: { color: '#E6EAF0' } }, axisTick: { show: false },
+        axisLabel: { color: '#98A3B3', fontSize: 11, hideOverlap: true },
       },
       yAxis: [
         { type: 'value', name: data.name, scale: true,
           nameTextStyle: { color: IDX_COLOR, fontSize: 11, align: 'right', padding: [0, 0, 3, 0] },
           axisLine: { show: true, lineStyle: { color: IDX_COLOR } }, axisTick: { show: false },
-          axisLabel: { color: IDX_COLOR, fontSize: 11 }, splitLine: { lineStyle: { color: '#f1f4f8' } } },
+          axisLabel: { color: IDX_COLOR, fontSize: 11 }, splitLine: { lineStyle: { color: '#F1F4F8' } } },
         { type: 'value', name: bNames, scale: true, position: 'right',
           nameTextStyle: { color: BENCH_COLOR, fontSize: 11, align: 'left', padding: [0, 0, 3, 0] },
           axisLine: { show: true, lineStyle: { color: BENCH_COLOR } }, axisTick: { show: false },
@@ -251,138 +271,153 @@ export default function Trend() {
     }
   }, [pts, data])
 
-  if (err) return <div className="tv-card"><Empty description={`接口连接失败：${err}`} /></div>
-  if (!meta) return <div style={{ padding: 60, textAlign: 'center' }}><Spin size="large" tip="正在加载…" /></div>
+  if (err) return <div className="ds-card ds-empty"><Empty description={`加载失败：${err}`} /></div>
+  if (!meta) return <div className="ds-loading"><Spin size="large" tip="正在准备数据…" /></div>
 
   const up = (stats.last_pct ?? 0) >= 0
 
   return (
-    <Spin spinning={loading}>
-      <div className="tv">
-        <div className="tv-hero">
-          <div className="tv-hero-l">
+      <div className="ds-page">
+        <header className="ds-hero">
+          <div className="ds-hero-main">
+            <div className="ds-eyebrow">VALUATION WATCH · 估值观察</div>
             <h1>指数估值走势</h1>
-            <p>PE · 股息率 · 溢价 · 分位，一眼看清贵贱</p>
+            <p>估值水位、股息回报与 QDII 溢价，一屏看全</p>
           </div>
-          <div className="tv-hero-r">
-            <div className="tv-hero-price" style={{ color: up ? RED : GREEN }}>
+          <div className="ds-hero-quote">
+            <div className="ds-quote-value" style={{ color: up ? RED : GREEN }}>
               {data ? fmt(stats.last) : '—'}
               <span>{data ? pct(stats.last_pct) : ''}</span>
             </div>
-            <div className="tv-hero-meta">
-              {data ? `${data.name} · ${stats.start} ~ ${stats.end} · ${stats.n} 点` : '加载中'}
+            <div className="ds-quote-sub">
+              {data ? `${data.name} · ${stats.start} 至 ${stats.end} · ${stats.n} 个数据点${loading ? ' · 更新中' : ''}` : '正在读取行情'}
             </div>
           </div>
-        </div>
+        </header>
 
-        <div className="tv-panel">
-          <div className="tv-row">
-            <span className="tv-label">标的</span>
-            <div className="chips">
+        <section className="ds-panel">
+          <div className="ds-row">
+            <span className="ds-label">选择指数</span>
+            <div className="ds-chips">
               {list.map((x) => (
-                <button key={x.code} className={`chip ${x.code === code ? 'on' : ''}`} onClick={() => pickIndex(x.code)}>
+                <button key={x.code} className={`ds-chip ${x.code === code ? 'is-on' : ''}`} onClick={() => pickIndex(x.code)}>
                   {x.name}<em>{x.tag}</em>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="tv-row">
-            <span className="tv-label">区间</span>
+          <div className="ds-divider" />
+
+          <div className="ds-row">
+            <span className="ds-label">时间区间</span>
             <Segmented size="small" options={meta.ranges.map((r) => ({ label: r.label, value: r.key }))} value={range} onChange={setRange} />
-            <span className="tv-label">粒度</span>
+            <span className="ds-label ds-label-gap">K 线粒度</span>
             <Segmented size="small" options={meta.grans.map((g) => ({ label: g.label, value: g.key }))} value={gran} onChange={setGran} />
-            <span className="tv-label">视图</span>
+            <span className="ds-label ds-label-gap">显示方式</span>
             <Segmented size="small"
               options={[{ label: '点位', value: 'point' }, { label: '累积收益', value: 'cum' }]}
               value={mode} onChange={setMode} />
           </div>
 
-          <div className="tv-row">
-            <span className="tv-label">第二 Y 轴</span>
-            <div className="chips">
+          <div className="ds-divider" />
+
+          <div className="ds-row">
+            <span className="ds-label">指标曲线</span>
+            <div className="ds-chips">
               {indOptions.map((o) => (
                 <Tooltip key={o.key} title={o.why}>
-                  <button className={`chip ${inds.includes(o.key) ? 'on' : ''}`} onClick={() => toggleInd(o.key)}>
-                    {o.label}{o.pct_line ? <em>分位</em> : null}
+                  <button className={`ds-chip ${inds.includes(o.key) ? 'is-on' : ''}`} onClick={() => toggleInd(o.key)}>
+                    {o.label}{o.unit ? <em>{o.unit}</em> : null}
                   </button>
                 </Tooltip>
               ))}
             </div>
-            <span className="phint">最多 2 条</span>
+            <span className="ds-hint">最多同时显示 2 条</span>
           </div>
 
-          {indOptions.some((o) => inds.includes(o.key) && o.pct_line) && (
-            <div className="tv-row">
-              <span className="tv-label">分位参考线</span>
-              <Segmented size="small" options={meta.pct_windows.map((w) => ({ label: w.label, value: w.key }))} value={pctWin} onChange={setPctWin} />
-              <span className="phint">图上 20% / 50% / 80% 三条横线，看当前处在历史什么位置</span>
+          <div className="ds-row">
+            <span className="ds-label">分位线</span>
+            <div className="ds-chips">
+              {pctOptions.map((o) => (
+                <Tooltip key={o.key} title={`在 ${o.label} 轴上叠加 20% / 50% / 80% 三条参考线`}>
+                  <button className={`ds-chip ds-chip-ghost ${pcts.includes(o.key) ? 'is-on' : ''}`} onClick={() => togglePct(o.key)}>
+                    {o.label}
+                  </button>
+                </Tooltip>
+              ))}
             </div>
-          )}
+            {pcts.length > 0 ? (
+              <>
+                <span className="ds-label ds-label-gap">参考窗口</span>
+                <Segmented size="small" options={meta.pct_windows.map((w) => ({ label: w.label, value: w.key }))} value={pctWin} onChange={setPctWin} />
+              </>
+            ) : <span className="ds-hint">逐项开启，可独立于指标曲线</span>}
+          </div>
 
-          <div className="tv-row">
-            <span className="tv-label">对比</span>
+          <div className="ds-divider" />
+
+          <div className="ds-row">
+            <span className="ds-label">指数对比</span>
             <Select size="small" style={{ width: 200 }} allowClear placeholder="不对比" value={bench || undefined}
               onChange={(v) => setBench(v || '')}
               options={list.filter((x) => x.code !== code).map((x) => ({ label: x.name, value: x.code }))} />
-            <span className="phint">在主图下方单独成图</span>
+            <span className="ds-hint">在下方单独成图，不影响上方指标</span>
           </div>
-        </div>
+        </section>
 
-        <div className="tv-card">
-          <div className="statrow">
-            <div className="sbox"><span>区间涨跌</span><b style={{ color: stats.ret >= 0 ? RED : GREEN }}>{pct(stats.ret)}</b></div>
-            <div className="sbox"><span>最大回撤</span><b style={{ color: GREEN }}>{pct(stats.mdd)}</b></div>
-            <div className="sbox"><span>年化波动</span><b>{stats.vol == null ? '—' : `${stats.vol}%`}</b></div>
-            <div className="sbox"><span>上涨 / 下跌</span><b>{stats.up_days ?? '—'} / {stats.down_days ?? '—'}</b></div>
+        <section className="ds-card">
+          <div className="ds-stats">
+            <div className="ds-stat"><span>区间涨跌</span><b style={{ color: stats.ret >= 0 ? RED : GREEN }}>{pct(stats.ret)}</b></div>
+            <div className="ds-stat"><span>最大回撤</span><b style={{ color: GREEN }}>{pct(stats.mdd)}</b></div>
+            <div className="ds-stat"><span>年化波动</span><b>{stats.vol == null ? '—' : `${stats.vol}%`}</b></div>
+            <div className="ds-stat"><span>上涨 / 下跌</span><b>{stats.up_days ?? '—'} / {stats.down_days ?? '—'}</b></div>
             {(data?.indicators || []).map((o) => {
               const v = stats.ind_last?.[o.key]
               const q = stats.ind_last?.[o.key + '_pct']
               return (
-                <div className="sbox" key={o.key}>
-                  <span>{o.label}{q != null ? ` · ${pctWinLabel(meta, pctWin)}分位 ${q}%` : ''}</span>
-                  <b style={{ color: IND_COLORS[data.indicators.indexOf(o)] }}>{v == null ? '—' : `${fmt(v)}${o.unit || ''}`}</b>
+                <div className="ds-stat" key={o.key}>
+                  <span>{o.label}{q != null ? ` · 近${pctWin === 'ALL' ? '全部' : pctWin}分位 ${q}%` : ''}</span>
+                  <b style={{ color: colorOf(o.key) }}>{v == null ? '—' : `${fmt(v)}${o.unit || ''}`}</b>
                 </div>
               )
             })}
           </div>
           {option ? <EChart option={option} height={440} /> : <Empty description="暂无数据" />}
-          <div className="legend">
-            <span>{swatch(IDX_COLOR)}{mode === 'point' ? (data?.cls === 'stock' ? '股价（元）' : '指数点位') : '区间累积收益'}</span>
-            {(data?.indicators || []).map((o, i) => (
-              <span key={o.key}>{swatch(IND_COLORS[i])}{o.label}{o.unit ? `（${o.unit}）` : ''}</span>
+          <div className="ds-legend">
+            <span>{swatch(IDX_COLOR)}{mode === 'point' ? (data?.cls === 'stock' ? '股价' : '指数点位') : '累积收益'}</span>
+            {(data?.indicators || []).map((o) => (
+              <span key={o.key}>{swatch(colorOf(o.key))}{o.label}</span>
+            ))}
+            {axisKeys.filter((k) => !(data?.indicators || []).some((o) => o.key === k)).map((k) => (
+              <span key={k}>{swatch(colorOf(k), true)}{labelOf(k)?.label}（仅分位）</span>
             ))}
             {refLines.length > 0 && [20, 50, 80].map((q) => (
               <span key={q}>{swatch(QCOLORS[q], true)}{q}% 分位</span>
             ))}
           </div>
-        </div>
+        </section>
 
         {data?.bench && benchOption && (
-          <div className="tv-card">
-            <div className="tv-card-head">
+          <section className="ds-card">
+            <div className="ds-card-head">
               <h2>指数对比</h2>
-              <Text type="secondary" style={{ fontSize: 12 }}>{data.name} vs {data.bench.name} · 各自独立 Y 轴</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>{data.name} vs {data.bench.name} · 各自独立纵轴</Text>
             </div>
-            <div className="statrow">
-              <div className="sbox"><span>{data.name} 区间涨跌</span><b style={{ color: stats.ret >= 0 ? RED : GREEN }}>{pct(stats.ret)}</b></div>
-              <div className="sbox"><span>{data.bench.name} 区间涨跌</span><b style={{ color: data.bench.ret >= 0 ? RED : GREEN }}>{pct(data.bench.ret)}</b></div>
-              <div className="sbox"><span>强弱差</span><b style={{ color: stats.ret - data.bench.ret >= 0 ? RED : GREEN }}>{pct(stats.ret - data.bench.ret)}</b></div>
+            <div className="ds-stats">
+              <div className="ds-stat"><span>{data.name} 区间涨跌</span><b style={{ color: stats.ret >= 0 ? RED : GREEN }}>{pct(stats.ret)}</b></div>
+              <div className="ds-stat"><span>{data.bench.name} 区间涨跌</span><b style={{ color: data.bench.ret >= 0 ? RED : GREEN }}>{pct(data.bench.ret)}</b></div>
+              <div className="ds-stat"><span>强弱差</span><b style={{ color: stats.ret - data.bench.ret >= 0 ? RED : GREEN }}>{pct(stats.ret - data.bench.ret)}</b></div>
             </div>
             <EChart option={benchOption} height={250} />
-            <div className="legend">
+            <div className="ds-legend">
               <span>{swatch(IDX_COLOR)}{data.name}</span>
               <span>{swatch(BENCH_COLOR)}{data.bench.name}</span>
             </div>
-          </div>
+          </section>
         )}
 
-        <div className="tv-foot">数据仅供研究，不构成投资建议</div>
+        <div className="ds-foot">仅供研究，不构成投资建议</div>
       </div>
-    </Spin>
   )
-}
-
-function pctWinLabel(meta, key) {
-  return meta.pct_windows.find((w) => w.key === key)?.label || ''
 }

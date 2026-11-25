@@ -303,3 +303,105 @@ tr:hover td { background: #fafbfd; }
   .tv-hero-r { text-align: left; }
   .tv-label { min-width: 100%; }
 }
+
+/* ============================================================
+   估值观察 · Design System
+   Insight / Ink / Gold — 深墨蓝 + 暖金，克制留白
+   ============================================================ */
+:root {
+  --ds-ink: #17243A;
+  --ds-ink-2: #263A58;
+  --ds-accent: #C39A5B;
+  --ds-accent-soft: #FBF4E9;
+  --ds-surface: #FAFAFB;
+  --ds-card: #FFFFFF;
+  --ds-muted: #6F7A8B;
+  --ds-line: #E9ECF1;
+  --ds-radius: 18px;
+  --ds-shadow: 0 1px 2px rgba(23,36,58,.04), 0 10px 30px rgba(23,36,58,.055);
+  --ease-out: cubic-bezier(.2,0,.2,1);
+}
+
+.ds-page { display: flex; flex-direction: column; gap: 16px; }
+
+/* Hero */
+.ds-hero {
+  position: relative; overflow: hidden;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+  padding: 26px 30px 24px; border-radius: var(--ds-radius);
+  background: linear-gradient(112deg, #152238 0%, #223656 58%, #2E4A72 100%);
+  box-shadow: 0 14px 40px rgba(21,34,56,.2);
+  color: #fff;
+}
+.ds-hero::after {
+  content: ''; position: absolute; left: 30px; right: 30px; bottom: 0; height: 2px;
+  background: linear-gradient(90deg, var(--ds-accent), rgba(195,154,91,0));
+}
+.ds-eyebrow {
+  font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  color: #D9B77D; font-weight: 600; margin-bottom: 10px;
+}
+.ds-hero h1 { margin: 0 0 8px; font-size: clamp(22px, 2.6vw, 28px); font-weight: 650; letter-spacing: .02em; }
+.ds-hero p { margin: 0; font-size: 13px; color: rgba(255,255,255,.66); letter-spacing: .02em; }
+.ds-hero-quote { text-align: right; }
+.ds-quote-value { font-size: clamp(28px, 3.4vw, 38px); font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.ds-quote-value span { font-size: 15px; font-weight: 600; margin-left: 10px; }
+.ds-quote-sub { margin-top: 8px; font-size: 11.5px; color: rgba(255,255,255,.6); }
+
+/* Panel */
+.ds-panel {
+  background: var(--ds-card); border-radius: var(--ds-radius); padding: 18px 22px;
+  box-shadow: var(--ds-shadow); display: flex; flex-direction: column; gap: 12px;
+}
+.ds-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 34px; }
+.ds-label { min-width: 72px; font-size: 12.5px; font-weight: 600; color: #4C5A6E; white-space: nowrap; }
+.ds-label-gap { margin-left: 12px; }
+.ds-hint { color: #9AA5B4; font-size: 11.5px; margin-left: 4px; }
+.ds-divider { height: 1px; background: var(--ds-line); margin: 2px 0; }
+
+.ds-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.ds-chip {
+  height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid transparent;
+  background: #F3F5F8; color: #415069; font-family: inherit; font-size: 12.5px;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: transform .15s var(--ease-out), background .15s, border-color .15s, box-shadow .15s;
+}
+.ds-chip:hover { background: #EAEFF7; transform: translateY(-1px); }
+.ds-chip:active { transform: translateY(0) scale(.97); }
+.ds-chip:focus-visible { outline: 2px solid var(--ds-accent); outline-offset: 2px; }
+.ds-chip em { font-style: normal; font-size: 10px; color: #9AA5B4; }
+.ds-chip.is-on { background: var(--ds-ink); color: #fff; box-shadow: 0 3px 10px rgba(23,36,58,.18); }
+.ds-chip.is-on em { color: rgba(255,255,255,.62); }
+.ds-chip-ghost.is-on { background: var(--ds-accent-soft); border-color: #E7CDA0; color: #8A5E22; box-shadow: none; }
+.ds-chip-ghost.is-on em { color: #B08C57; }
+
+/* Card / stats / legend */
+.ds-card {
+  background: var(--ds-card); border-radius: var(--ds-radius); padding: 18px 20px 12px;
+  box-shadow: var(--ds-shadow);
+}
+.ds-card-head { display: flex; align-items: baseline; gap: 12px; margin: 0 0 10px; }
+.ds-card-head h2 { margin: 0; font-size: 15px; font-weight: 650; }
+.ds-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.ds-stat {
+  background: #F7F8FA; border: 1px solid #F0F2F6; border-radius: 12px; padding: 9px 12px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.ds-stat span { font-size: 11px; color: var(--ds-muted); }
+.ds-stat b { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.ds-legend {
+  display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 8px 2px 2px;
+  color: var(--ds-muted); font-size: 11.5px;
+  border-top: 1px solid var(--ds-line); margin-top: 6px;
+}
+.ds-legend span { display: inline-flex; align-items: center; }
+.ds-foot { text-align: center; color: #A5AFBD; font-size: 11.5px; padding: 4px 0 8px; }
+.ds-empty { padding: 30px; }
+.ds-loading { padding: 80px; text-align: center; }
+
+@media (max-width: 760px) {
+  .ds-hero { flex-direction: column; align-items: flex-start; padding: 22px; }
+  .ds-hero-quote { text-align: left; }
+  .ds-label, .ds-label-gap { min-width: 100%; margin-left: 0; }
+  .ds-panel { padding: 16px; }
+}

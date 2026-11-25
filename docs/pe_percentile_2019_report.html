@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>沪深300 PE 分位择时验证（2019-2026）</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+:root{--ink:#0f172a;--ink2:#475569;--mut:#94a3b8;--line:#e2e8f0;--bg:#f7f8fa;--card:#fff;--up:#c62828;--down:#1b7f4e;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 -apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:40px 28px 80px}
+h1{font-size:27px;line-height:1.35;margin:0 0 10px;letter-spacing:-.3px}
+.sub-t{color:var(--ink2);font-size:13.5px;margin-bottom:6px}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:20px;background:#eef2ff;color:#3730a3;margin-right:6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin:18px 0}
+h2{font-size:18px;margin:34px 0 12px;padding-left:11px;border-left:4px solid #1e293b}
+h3{font-size:15px;margin:22px 0 8px;color:var(--ink2)}
+p{margin:10px 0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px}
+.kpi .k{font-size:12.5px;color:var(--mut);letter-spacing:.3px}
+.kpi .v{font-size:23px;font-weight:700;margin:4px 0 2px;letter-spacing:-.5px}
+.kpi .d{font-size:12.5px;color:var(--ink2)}
+.kpi.best{border-color:#fecaca;background:linear-gradient(180deg,#fff5f5,#fff)}
+.verdict{background:linear-gradient(180deg,#fff,#fcfcfd);border:1px solid var(--line);border-left:4px solid #1e293b;border-radius:10px;padding:18px 22px}
+.verdict b{color:#111}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:8px 0}
+th,td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line)}
+th{background:#f8fafc;color:var(--ink2);font-weight:600;font-size:12.5px;text-align:right;white-space:nowrap}
+td.nm,th.nm{text-align:left;font-weight:600;white-space:nowrap}
+td.nm{font-weight:600}
+tbody tr:hover{background:#fcfdff}
+.c-up{color:var(--up)} .c-down{color:var(--down)}
+.muted{color:var(--mut);text-align:left}
+.sub{color:var(--mut);font-size:11.5px}
+.note{font-size:12.5px;color:var(--mut);margin-top:8px}
+.chart{width:100%;height:380px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+ul{padding-left:20px;margin:8px 0} li{margin:5px 0}
+.dis{font-size:12.5px;color:var(--ink2);background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 20px;line-height:1.75}
+@media(max-width:860px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+
+<div class="sub-t">量化验证 · 沪深300（000300） · 样本 2019-01~2026-11（94 个月）</div>
+<h1>PE 分位择时：1 年 / 3 年 / 5 年 / 10 年四个回顾窗口，哪个对大盘股更有参考意义？</h1>
+<div class="sub-t">
+<span class="tag">分位 ≤20% 买入</span><span class="tag">分位 ≥80% 卖出</span><span class="tag">20~80% 维持原仓</span><span class="tag">未触发则空仓</span>
+</div>
+
+<div class="verdict" style="margin-top:16px">
+<b>结论：对沪深300 这类大盘股，5 年 PE 分位的参考价值最高，3 年次之；1 年基本无效，10 年过于迟钝。</b><br>
+1 年窗口被短期盈利波动主导，4 次交易单笔均值 <b class="c-down">-4.15%</b>，全区间年化 <b class="c-down">-2.57%</b>，随机测试只有 <b>34%</b> 的概率跑赢买入持有 —— 属于负向指标。<br>
+3 年与 5 年窗口都跑赢基准约 20pp，并把最大回撤从 <b class="c-down">-39.9%</b> 压到 <b class="c-down">-28.3%</b>，随机胜率 66%~67%；两者差距在噪声内，但 5 年的阈值敏感性单调、不塌陷，稳健性更好。<br>
+10 年分位"最准"（回撤最小 -22.6%、随机胜率 71.6%），但 62% 的 1 年期窗口根本不触发交易、平均持仓仅 24%、全区间只有 1 笔交易 —— 统计上无法验证，实务上等于长期空仓。<br>
+<span class="sub">当前（2026-11）分位：1年 25.0% · 3年 63.9% · 5年 76.7% · 10年 65.8%</span>
+</div>
+
+<h2>一、关键数字</h2>
+<div class="grid">
+  <div class="kpi"><div class="k">1 年 PE 分位</div><div class="v c-down">-2.57%</div><div class="d">年化 · 随机胜率 34.3%</div></div>
+  <div class="kpi"><div class="k">3 年 PE 分位</div><div class="v c-up">+4.99%</div><div class="d">年化 · 随机胜率 66.3%</div></div>
+  <div class="kpi best"><div class="k">5 年 PE 分位</div><div class="v c-up">+4.61%</div><div class="d">年化 · 随机胜率 67.3%（推荐）</div></div>
+  <div class="kpi"><div class="k">10 年 PE 分位</div><div class="v c-up">+3.21%</div><div class="d">年化 · 随机胜率 71.6%</div></div>
+</div>
+<div class="note">年化为 2019-01 ~ 2026-11 全区间；随机胜率＝随机起点、随机持有期下跑赢同期买入持有的概率。</div>
+
+<h2>二、净值曲线</h2>
+<div class="card"><div id="c1" class="chart"></div>
+<div class="note">起点归一化为 1（2019-01 收盘）。四条线只在分位触及 20% / 80% 时切换仓位，中间区间不动。</div></div>
+<p>四条曲线从 2020 年年中就分开了：3 年与 5 年分位在 2020-07 双双突破 80% 卖出线，此后整个 2021 年空仓，完整躲过 2021-02 之后的长跌；1 年窗口分位频繁翻转，2021-07 追高买入后一路持有到 2023-03，单笔亏 16.3%。</p>
+
+<h2>三、PE 与四条分位线</h2>
+<div class="card"><div id="c2" class="chart" style="height:400px"></div>
+<div class="note">左轴：沪深300 PE-TTM（加权）；右轴：各窗口滚动分位。虚线为 20% / 80% 阈值。</div></div>
+<p>关键差异在分位的"振幅"：10 年分位全区间只在 <b>10.8%~97.5%</b> 之间移动，2022-2024 大底时也只跌到 10.8%（仅 6 个月低于 20%）—— 因为 10 年窗口里始终包含 2013-2014 年 8~10 倍 PE 的极端底部，把分位天花板压低。1 年分位则在 8.3%~100% 之间狂摆，噪音太大。</p>
+
+<h2>四、全区间绩效（2019-01 ~ 2026-11）</h2>
+<div class="card"><table>
+<thead><tr><th class="nm">方案</th><th>总收益</th><th>年化</th><th>波动</th><th>最大回撤</th><th>夏普</th><th>Calmar</th><th>持仓时间</th><th>交易笔数</th><th>单笔均值</th></tr></thead>
+<tbody><tr><td class='nm'>买入持有（基准）</td><td class='c-up'>+23.5%</td><td>+2.73%</td><td>18.40%</td><td class='c-down'>-39.9%</td><td>0.15</td><td>0.07</td><td>100.0%</td><td>0</td><td>—</td></tr><tr><td class='nm'>1年 PE 分位</td><td class='c-down'>-18.4%</td><td>-2.57%</td><td>10.77%</td><td class='c-down'>-29.6%</td><td>-0.24</td><td>-0.09</td><td>33.0%</td><td>4</td><td>-4.15%</td></tr><tr><td class='nm'>3年 PE 分位</td><td class='c-up'>+46.4%</td><td>+4.99%</td><td>15.19%</td><td class='c-down'>-28.3%</td><td>0.33</td><td>0.18</td><td>50.0%</td><td>2</td><td>+23.34%</td></tr><tr><td class='nm'>5年 PE 分位</td><td class='c-up'>+42.3%</td><td>+4.61%</td><td>14.02%</td><td class='c-down'>-28.3%</td><td>0.33</td><td>0.16</td><td>46.8%</td><td>2</td><td>+19.67%</td></tr><tr><td class='nm'>10年 PE 分位</td><td class='c-up'>+28.0%</td><td>+3.21%</td><td>11.45%</td><td class='c-down'>-22.6%</td><td>0.28</td><td>0.14</td><td>36.2%</td><td>1</td><td>+28.16%</td></tr></tbody></table>
+<div class="note">月度调仓、月末信号次月生效、单边成本 5bp、不含股息。夏普按无风险利率 0 计算。</div></div>
+<p>基准（买入持有）94 个月只赚 23.5%、年化 2.73%，却要承受 -39.9% 的回撤——这是 2019 年以来 A 股大盘股的真实处境。3 年 / 5 年分位用不到一半的持仓时间拿到接近两倍的收益，Calmar 从 0.07 提升到 0.16~0.18。</p>
+
+<h2>五、随机测试：随机起点 + 随机持有期</h2>
+<div class="card">
+<div class="two">
+  <div><h3>中位年化收益</h3><div id="c3" style="width:100%;height:320px"></div></div>
+  <div><h3>跑赢买入持有的概率</h3><div id="c4" style="width:100%;height:320px"></div></div>
+</div>
+<div class="note">每个单元格 1500 次模拟：在 2019-01 之后随机取起点、随机取 12/24/36/60 月持有期，规则从起点空仓起步。</div>
+</div>
+<div class="card"><table>
+<thead><tr><th class="nm">回顾窗口</th><th>等待版<br>中位年化</th><th>连续版<br>中位年化</th><th>基准<br>中位年化</th><th>胜率<br>（等待版）</th><th>胜率<br>（连续版）</th><th>平均持仓</th><th>零交易占比</th><th>年化 5%~95% 分位</th></tr></thead>
+<tbody><tr><td class='nm'>1年窗口</td><td>-0.93%</td><td>-0.93%</td><td>-0.74%</td><td class='c-down'>34.3%</td><td class='c-down'>33.4%</td><td>38.1%</td><td>10.3%</td><td>[-8.7, +7.3]</td></tr><tr><td class='nm'>3年窗口</td><td>+0.00%</td><td>+0.27%</td><td>-0.76%</td><td class='c-up'>66.3%</td><td class='c-up'>64.3%</td><td>49.2%</td><td>14.4%</td><td>[-7.2, +13.7]</td></tr><tr><td class='nm'>5年窗口</td><td>+2.27%</td><td>+2.27%</td><td>-0.80%</td><td class='c-up'>67.3%</td><td class='c-up'>65.2%</td><td>54.8%</td><td>10.7%</td><td>[-7.6, +16.3]</td></tr><tr><td class='nm'>10年窗口</td><td>+2.06%</td><td>+2.08%</td><td>-0.76%</td><td class='c-up'>71.6%</td><td class='c-up'>60.6%</td><td>38.4%</td><td>29.2%</td><td>[-1.1, +15.6]</td></tr></tbody></table>
+<div class="note">"等待版"＝随机起点时以空仓开始，等分位跌到 20% 才买；"连续版"＝规则自 2019-01 起持续运行，只取同一窗口的收益。基准为同窗口买入持有。</div></div>
+<p>随机化之后 1 年窗口的劣势更清楚：跨全部持有期，中位年化 <b class="c-down">-0.93%</b>，只有 34.3% 的窗口跑赢基准；60 个月持有期上跑赢概率跌到 17.6%。3 年与 5 年的胜率稳定在 66%~67%，且持有期越长胜率越高（5 年窗口在 60 月持有期上胜率 94.5%）——这正是"估值均值回归"该有的形状：时间越长，估值差的兑现越充分。</p>
+<p>10 年窗口的胜率数字漂亮（71.6%），但零交易占比 62%：大多数 1 年期场景里它从未买入，收益记 0 而基准为负，于是"跑赢"了。这是统计假象的一部分，不能当作有效性证据。</p>
+
+<h2>六、阈值敏感性</h2>
+<div class="card"><table>
+<thead><tr><th class="nm">窗口</th><th>10 / 70</th><th>10 / 80</th><th>10 / 90</th><th>20 / 70</th><th>20 / 80</th><th>20 / 90</th><th>30 / 70</th><th>30 / 80</th><th>30 / 90</th></tr></thead>
+<tbody><tr><td class='nm'>1年</td><td class='c-down'>-1.76<span class='sub'> / 31%</span></td><td class='c-down'>-1.83<span class='sub'> / 32%</span></td><td class='c-down'>-1.59<span class='sub'> / 33%</span></td><td class='c-down'>-2.50<span class='sub'> / 32%</span></td><td class='c-down'>-2.57<span class='sub'> / 33%</span></td><td class='c-down'>-2.34<span class='sub'> / 34%</span></td><td class='c-down'>-3.55<span class='sub'> / 38%</span></td><td class='c-down'>-3.61<span class='sub'> / 39%</span></td><td class='c-down'>-3.38<span class='sub'> / 40%</span></td></tr><tr><td class='nm'>3年</td><td class='c-down'>-0.01<span class='sub'> / 31%</span></td><td class='c-down'>-0.01<span class='sub'> / 31%</span></td><td class='c-down'>-0.01<span class='sub'> / 31%</span></td><td class='c-up'>+4.99<span class='sub'> / 50%</span></td><td class='c-up'>+4.99<span class='sub'> / 50%</span></td><td class='c-up'>+5.33<span class='sub'> / 51%</span></td><td class='c-up'>+4.32<span class='sub'> / 51%</span></td><td class='c-up'>+4.32<span class='sub'> / 51%</span></td><td class='c-up'>+4.66<span class='sub'> / 52%</span></td></tr><tr><td class='nm'>5年</td><td class='c-down'>-0.21<span class='sub'> / 27%</span></td><td class=''>+1.24<span class='sub'> / 38%</span></td><td class=''>+1.83<span class='sub'> / 44%</span></td><td class='c-up'>+3.12<span class='sub'> / 35%</span></td><td class='c-up'>+4.61<span class='sub'> / 47%</span></td><td class='c-up'>+5.56<span class='sub'> / 53%</span></td><td class='c-up'>+4.32<span class='sub'> / 51%</span></td><td class='c-up'>+5.83<span class='sub'> / 63%</span></td><td class='c-up'>+6.79<span class='sub'> / 69%</span></td></tr><tr><td class='nm'>10年</td><td class=''>+0.00<span class='sub'> / 0%</span></td><td class=''>+0.00<span class='sub'> / 0%</span></td><td class=''>+0.00<span class='sub'> / 0%</span></td><td class='c-up'>+3.21<span class='sub'> / 36%</span></td><td class='c-up'>+3.21<span class='sub'> / 36%</span></td><td class=''>+1.53<span class='sub'> / 52%</span></td><td class=''>+1.24<span class='sub'> / 38%</span></td><td class=''>+1.24<span class='sub'> / 38%</span></td><td class='c-down'>-0.40<span class='sub'> / 54%</span></td></tr></tbody></table>
+<div class="note">单元格＝年化收益 / 平均持仓比例；买入阈值×卖出阈值共 9 组。</div></div>
+<p>5 年窗口是唯一在"更宽的阈值"下单调改善的（20/80 → 30/90：4.61% → 6.79%），说明它的信号不是靠某个魔法数字撑着。3 年在买入口径收到 10% 时直接归零（一整段不交易），存在明显悬崖；1 年在所有 9 组组合下全为负，稳健地无效。</p>
+
+<h2>七、逐年敞口与实际收益</h2>
+<div class="card"><div id="c5" class="chart"></div>
+<div class="note">柱：各窗口逐年平均持仓比例；折线：该年沪深300 实际涨跌。</div></div>
+<div class="card"><table>
+<thead><tr><th class="nm">方案</th><th>2019</th><th>2020</th><th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th><th>2026</th></tr></thead>
+<tbody><tr><td class='nm'>1年</td><td class='muted'>+0.0<span class='sub'> (0%)</span></td><td class='c-up'>+12.9<span class='sub'> (25%)</span></td><td class='c-down'>-5.2<span class='sub'> (50%)</span></td><td class='c-down'>-8.9<span class='sub'> (100%)</span></td><td class='c-down'>-10.9<span class='sub'> (42%)</span></td><td class='c-up'>+10.0<span class='sub'> (17%)</span></td><td class='muted'>+0.0<span class='sub'> (0%)</span></td><td class='c-down'>-14.5<span class='sub'> (30%)</span></td></tr><tr><td class='nm'>3年</td><td class='c-up'>+25.0<span class='sub'> (100%)</span></td><td class='c-up'>+17.2<span class='sub'> (50%)</span></td><td class='muted'>+0.0<span class='sub'> (0%)</span></td><td class='c-up'>+3.5<span class='sub'> (75%)</span></td><td class='c-down'>-22.6<span class='sub'> (100%)</span></td><td class='c-up'>+24.9<span class='sub'> (67%)</span></td><td class='muted'>+0.0<span class='sub'> (0%)</span></td><td class='muted'>+0.0<span class='sub'> (0%)</span></td></tr><tr><td class='nm'>5年</td><td class='muted'>+0.0<span class='sub'> (0%)</span></td><td class='c-up'>+27.2<span class='sub'> (33%)</span></td><td class='muted'>+0.0<span class='sub'> (0%)</span></td><td class='c-up'>+3.5<span class='sub'> (75%)</span></td><td class='c-down'>-22.6<span class='sub'> (100%)</span></td><td class='c-up'>+18.7<span class='sub'> (100%)</span></td><td class='c-up'>+17.7<span class='sub'> (58%)</span></td><td class='muted'>+0.0<span class='sub'> (0%)</span></td></tr><tr><td class='nm'>10年</td><td class='muted'>+0.0<span class='sub'> (0%)</span></td><td class='muted'>+0.0<span class='sub'> (0%)</span></td><td class='muted'>+0.0<span class='sub'> (0%)</span></td><td class='c-up'>+18.4<span class='sub'> (25%)</span></td><td class='c-down'>-22.6<span class='sub'> (100%)</span></td><td class='c-up'>+18.7<span class='sub'> (100%)</span></td><td class='c-up'>+17.7<span class='sub'> (58%)</span></td><td class='muted'>+0.0<span class='sub'> (0%)</span></td></tr></tbody></table>
+<div class="note">单元格＝策略当年收益（持仓比例）。</div></div>
+
+<h2>八、逐笔交易</h2>
+<div class="card"><table>
+<thead><tr><th class="nm">窗口</th><th>买入信号月</th><th>卖出信号月</th><th>持有月数</th><th>区间收益</th><th>对应年化</th></tr></thead>
+<tbody><tr><td class='nm'>1年</td><td>2020-03</td><td>2020-06</td><td>3</td><td class='c-up'>+12.96%</td><td>+62.8%</td></tr><tr><td class='nm'>1年</td><td>2021-07</td><td>2023-04</td><td>21</td><td class='c-down'>-16.26%</td><td>-9.6%</td></tr><tr><td class='nm'>1年</td><td>2023-11</td><td>2024-03</td><td>4</td><td class='c-up'>+1.18%</td><td>+3.6%</td></tr><tr><td class='nm'>1年</td><td>2026-08</td><td>2026-11</td><td>3</td><td class='c-down'>-14.50%</td><td>-46.6%</td></tr><tr><td class='nm'>3年</td><td>2019-01</td><td>2020-07</td><td>18</td><td class='c-up'>+46.65%</td><td>+29.1%</td></tr><tr><td class='nm'>3年</td><td>2022-04</td><td>2024-09</td><td>29</td><td class='c-up'>+0.04%</td><td>+0.0%</td></tr><tr><td class='nm'>5年</td><td>2020-03</td><td>2020-07</td><td>4</td><td class='c-up'>+27.37%</td><td>+106.6%</td></tr><tr><td class='nm'>5年</td><td>2022-04</td><td>2025-08</td><td>40</td><td class='c-up'>+11.96%</td><td>+3.4%</td></tr><tr><td class='nm'>10年</td><td>2022-10</td><td>2025-08</td><td>34</td><td class='c-up'>+28.16%</td><td>+9.2%</td></tr></tbody></table></div>
+<p>3 年 / 5 年 / 10 年各自只做了 1-2 笔交易，方向全部正确：5 年窗口在 2020-03 疫情底建仓、4 个月赚 27.4%；3 年与 5 年又在 2022-04 的分位极低位重新进场，分别持有 29 和 40 个月。但这同时也是最大的问题——<b>94 个月里只有 1-2 个独立决策点，统计上等价于掷两次硬币</b>，不能当作策略有效性的证明。</p>
+
+<h2>九、结论与使用建议</h2>
+<div class="card">
+<ul>
+<li><b>不要用 1 年 PE 分位做择时</b>。它把"过去 12 个月的盈利波动"当成了估值信号，在 2019-2026 的每一段持有期上都跑输基准，是典型的追涨杀跌。</li>
+<li><b>5 年 PE 分位是沪深300 最合适的参考尺子</b>。它的阈值不敏感（20/80 到 30/90 都赚钱）、振幅完整覆盖一轮估值周期（1.7%~100%）、随机胜率 67%、回撤压缩 12pp。</li>
+<li><b>3 年可作为交叉验证</b>。信号更灵敏、更早建仓（2019-01 就在场内），代价是 2025 年整段空仓错过 23% 的反弹。做法上可用"5 年定方向、3 年定节奏"。</li>
+<li><b>10 年分位只当极端底部的旁证</b>。它要求 10 年历史，A 股当前的 10 年窗口仍被 2008 和 2015 两次泡沫污染，20% 阈值几乎摸不到。若要用，建议把买入阈值放宽到 30%~40%，且只作为加仓信号而非全部仓位依据。</li>
+<li><b>这套规则的真正作用是"避开泡沫"，不是"抓住底部"</b>。2019 年（+25.1%）四套规则全部空仓错过；2025 年（+23.3%）3 年与 10 年整段空仓。超额收益主要来自 2020-03 的低位抄底（5 年窗口 4 个月 +27.4%）和 2021-2024 的下跌回避。接受这点再用，否则一定会在连涨年份中途放弃。</li>
+</ul>
+</div>
+
+<h2>十、方法与局限</h2>
+<div class="card">
+<ul>
+<li><b>数据</b>：沪深300 PE-TTM（加权）与指数收盘，来自本地库 <code>val_index_pe_lg</code>（乐咕口径），月度序列 2005-04 ~ 2026-11；测试只用 2019-01 起样本，2019 年以前的 PE 仅作分位回溯窗口（不产生收益）。</li>
+<li><b>机制</b>：月末用截至当月末的 PE 计算滚动分位，次月第一个月收盘生效，无未来函数；单边成本 5 倍基点。</li>
+<li><b>不含股息</b>：沪深300 股息率约 2%-3%，满仓方案受益更多，因此本报告对择时类策略略偏乐观（实际多头暴露 33%~50%，少收约 1pp/年年化股息）。</li>
+<li><b>样本量硬约束</b>：2019-2026 只覆盖约 1.5 轮牛熊，3 年/5 年/10 年窗口各自仅 1-2 笔交易。随机测试用的是重叠窗口，独立样本实际只有 4-6 个，胜率的置信区间很宽。这是"方向性证据"，不是统计显著的有效性证明。</li>
+<li><b>口径风险</b>：PE-TTM 的分母是滚动 12 个月盈利，2020 年疫情和 2022 年地产链亏损会让 PE 失真（盈利骤降推高 PE），分位在这两段可能给出偏保守的信号。</li>
+</ul>
+</div>
+
+<div class="dis" style="margin-top:22px">
+<b>免责声明</b>：以上内容基于公开数据和量化分析，仅供参考，不构成投资建议。市场有风险，投资需谨慎。任何投资决策应结合个人风险承受能力、资金状况和投资目标独立判断，必要时咨询持牌专业机构。过往表现不预示未来收益。
+</div>
+<div class="note">数据源：本地 SQLite <code>data/ashare.db</code> · 表 <code>val_index_pe_lg</code>（乐咕乐股 PE-TTM，2019-01 ~ 2026-11-20）· 计算脚本 <code>scripts/backtest_pe_pct_2019.py</code> · 生成时间 2026-11-23</div>
+
+</div>
+<script>
+var D = {"ym": ["2019-01", "2019-02", "2019-03", "2019-04", "2019-05", "2019-06", "2019-07", "2019-08", "2019-09", "2019-10", "2019-11", "2019-12", "2020-01", "2020-02", "2020-03", "2020-04", "2020-05", "2020-06", "2020-07", "2020-08", "2020-09", "2020-10", "2020-11", "2020-12", "2021-01", "2021-02", "2021-03", "2021-04", "2021-05", "2021-06", "2021-07", "2021-08", "2021-09", "2021-10", "2021-11", "2021-12", "2022-01", "2022-02", "2022-03", "2022-04", "2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11"], "bh_eq": [1.0, 1.1461, 1.2095, 1.2223, 1.1337, 1.1949, 1.1979, 1.1868, 1.1914, 1.214, 1.1959, 1.2795, 1.2506, 1.2306, 1.1513, 1.2221, 1.2078, 1.3006, 1.4665, 1.5043, 1.4328, 1.4665, 1.5493, 1.6277, 1.6716, 1.6669, 1.5768, 1.6003, 1.6653, 1.6317, 1.5027, 1.501, 1.52, 1.5332, 1.5092, 1.5431, 1.4255, 1.431, 1.3189, 1.2544, 1.2779, 1.4009, 1.3025, 1.274, 1.1884, 1.0959, 1.2035, 1.2093, 1.2984, 1.2711, 1.2653, 1.2584, 1.1864, 1.2002, 1.2539, 1.176, 1.1524, 1.1158, 1.092, 1.0717, 1.0043, 1.0982, 1.1049, 1.1258, 1.1182, 1.0812, 1.0751, 1.0374, 1.2549, 1.2153, 1.2233, 1.229, 1.1922, 1.215, 1.2142, 1.1777, 1.1995, 1.2294, 1.273, 1.4045, 1.4495, 1.4495, 1.4139, 1.4461, 1.47, 1.4713, 1.3899, 1.5015, 1.528, 1.5553, 1.4331, 1.4446, 1.3611, 1.2448, 1.2352], "pe": [10.74, 12.06, 12.5, 12.27, 11.48, 12.22, 12.14, 11.7, 11.72, 11.67, 11.46, 12.3, 11.96, 11.57, 10.85, 11.77, 11.6, 12.38, 13.67, 14.45, 13.87, 13.92, 14.71, 15.66, 15.95, 15.87, 14.61, 13.52, 14.09, 14.32, 13.12, 12.41, 12.61, 12.67, 12.25, 13.37, 12.44, 12.57, 11.72, 11.21, 11.32, 12.31, 11.44, 11.02, 10.47, 9.61, 10.57, 10.59, 11.26, 11.17, 11.27, 11.47, 10.93, 10.97, 11.36, 10.99, 10.87, 10.64, 10.48, 10.38, 10.16, 10.91, 11.21, 11.63, 11.57, 11.48, 11.32, 10.86, 12.65, 11.65, 11.75, 12.19, 11.74, 11.82, 11.78, 11.49, 11.73, 12.34, 12.44, 13.23, 13.32, 13.19, 13.04, 13.34, 13.37, 13.33, 13.3, 13.85, 13.8, 13.77, 13.68, 13.04, 12.48, 12.17, 12.74], "eq": {"1y": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0609, 1.0486, 1.1291, 1.1285, 1.1285, 1.1285, 1.1285, 1.1285, 1.1285, 1.1285, 1.1285, 1.1285, 1.1285, 1.1285, 1.1285, 1.1285, 1.1267, 1.1409, 1.1508, 1.1328, 1.1582, 1.07, 1.0741, 0.99, 0.9416, 0.9592, 1.0515, 0.9777, 0.9563, 0.892, 0.8226, 0.9033, 0.9077, 0.9746, 0.9541, 0.9497, 0.9446, 0.9441, 0.9441, 0.9441, 0.9441, 0.9441, 0.9441, 0.9441, 0.9261, 0.8678, 0.949, 0.9548, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.9543, 0.8986, 0.8219, 0.8155], "3y": [1.0, 1.1456, 1.209, 1.2217, 1.1332, 1.1944, 1.1974, 1.1862, 1.1909, 1.2135, 1.1953, 1.279, 1.25, 1.2301, 1.1508, 1.2215, 1.2073, 1.3, 1.4658, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4651, 1.4918, 1.6353, 1.5205, 1.4872, 1.3873, 1.2793, 1.4049, 1.4116, 1.5156, 1.4838, 1.477, 1.469, 1.385, 1.401, 1.4638, 1.3729, 1.3452, 1.3026, 1.2748, 1.251, 1.1724, 1.282, 1.2898, 1.3142, 1.3053, 1.2622, 1.255, 1.211, 1.465, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642, 1.4642], "5y": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0609, 1.0486, 1.1291, 1.2731, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2725, 1.2957, 1.4203, 1.3206, 1.2917, 1.2049, 1.1111, 1.2202, 1.226, 1.3164, 1.2887, 1.2828, 1.2759, 1.2029, 1.2168, 1.2713, 1.1924, 1.1684, 1.1313, 1.1072, 1.0865, 1.0182, 1.1134, 1.1202, 1.1414, 1.1337, 1.0962, 1.09, 1.0518, 1.2723, 1.2322, 1.2403, 1.2461, 1.2088, 1.2319, 1.231, 1.194, 1.2161, 1.2465, 1.2906, 1.424, 1.4233, 1.4233, 1.4233, 1.4233, 1.4233, 1.4233, 1.4233, 1.4233, 1.4233, 1.4233, 1.4233, 1.4233, 1.4233, 1.4233, 1.4233], "10y": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0976, 1.1029, 1.1842, 1.1593, 1.154, 1.1478, 1.0821, 1.0946, 1.1437, 1.0726, 1.0511, 1.0177, 0.996, 0.9774, 0.916, 1.0016, 1.0077, 1.0268, 1.0198, 0.9861, 0.9806, 0.9462, 1.1446, 1.1085, 1.1157, 1.121, 1.0874, 1.1082, 1.1074, 1.0741, 1.094, 1.1213, 1.161, 1.281, 1.2804, 1.2804, 1.2804, 1.2804, 1.2804, 1.2804, 1.2804, 1.2804, 1.2804, 1.2804, 1.2804, 1.2804, 1.2804, 1.2804, 1.2804]}, "pct": {"1y": [33.3, 75.0, 83.3, 83.3, 50.0, 83.3, 75.0, 58.3, 58.3, 41.7, 25.0, 91.7, 50.0, 25.0, 8.3, 66.7, 33.3, 100.0, 100.0, 100.0, 91.7, 91.7, 100.0, 100.0, 100.0, 91.7, 66.7, 25.0, 50.0, 50.0, 8.3, 8.3, 16.7, 25.0, 8.3, 50.0, 25.0, 33.3, 8.3, 8.3, 16.7, 41.7, 25.0, 8.3, 8.3, 8.3, 25.0, 33.3, 58.3, 50.0, 75.0, 91.7, 41.7, 50.0, 91.7, 58.3, 33.3, 25.0, 8.3, 8.3, 8.3, 50.0, 83.3, 100.0, 91.7, 83.3, 75.0, 41.7, 100.0, 91.7, 91.7, 91.7, 75.0, 83.3, 75.0, 33.3, 50.0, 91.7, 91.7, 100.0, 100.0, 83.3, 75.0, 100.0, 100.0, 83.3, 66.7, 100.0, 91.7, 83.3, 75.0, 16.7, 8.3, 8.3, 25.0], "3y": [13.9, 41.7, 50.0, 41.7, 19.4, 38.9, 36.1, 22.2, 25.0, 22.2, 16.7, 50.0, 38.9, 22.2, 13.9, 38.9, 30.6, 66.7, 80.6, 97.2, 88.9, 88.9, 97.2, 100.0, 100.0, 97.2, 88.9, 75.0, 83.3, 83.3, 66.7, 61.1, 63.9, 63.9, 44.4, 66.7, 52.8, 55.6, 25.0, 5.6, 8.3, 44.4, 11.1, 5.6, 2.8, 2.8, 8.3, 11.1, 22.2, 19.4, 25.0, 33.3, 13.9, 16.7, 36.1, 19.4, 13.9, 13.9, 8.3, 5.6, 5.6, 27.8, 47.2, 66.7, 66.7, 66.7, 58.3, 25.0, 94.4, 80.6, 86.1, 88.9, 86.1, 91.7, 88.9, 72.2, 80.6, 97.2, 97.2, 100.0, 100.0, 94.4, 91.7, 100.0, 100.0, 94.4, 88.9, 100.0, 97.2, 94.4, 91.7, 69.4, 61.1, 50.0, 63.9], "5y": [26.7, 46.7, 56.7, 46.7, 31.7, 45.0, 43.3, 33.3, 33.3, 26.7, 21.7, 48.3, 38.3, 25.0, 11.7, 38.3, 30.0, 61.7, 86.7, 98.3, 91.7, 93.3, 98.3, 100.0, 100.0, 98.3, 91.7, 71.7, 86.7, 88.3, 63.3, 46.7, 50.0, 50.0, 36.7, 65.0, 45.0, 50.0, 25.0, 11.7, 13.3, 46.7, 15.0, 10.0, 5.0, 1.7, 8.3, 10.0, 21.7, 20.0, 25.0, 31.7, 16.7, 18.3, 31.7, 20.0, 16.7, 11.7, 6.7, 3.3, 3.3, 18.3, 30.0, 48.3, 45.0, 43.3, 36.7, 16.7, 75.0, 55.0, 56.7, 61.7, 56.7, 60.0, 58.3, 45.0, 53.3, 66.7, 71.7, 81.7, 83.3, 81.7, 80.0, 88.3, 91.7, 88.3, 86.7, 96.7, 96.7, 96.7, 95.0, 80.0, 71.7, 61.7, 76.7], "10y": [30.8, 49.2, 55.0, 50.8, 43.3, 51.7, 51.7, 46.7, 47.5, 45.0, 43.3, 57.5, 51.7, 45.0, 33.3, 51.7, 47.5, 64.2, 81.7, 90.0, 86.7, 88.3, 93.3, 97.5, 97.5, 96.7, 93.3, 81.7, 90.0, 90.8, 77.5, 65.0, 68.3, 68.3, 57.5, 78.3, 63.3, 65.8, 46.7, 33.3, 35.0, 57.5, 36.7, 28.3, 23.3, 15.8, 24.2, 24.2, 31.7, 29.2, 31.7, 37.5, 25.0, 25.0, 33.3, 24.2, 21.7, 19.2, 15.8, 12.5, 10.8, 21.7, 27.5, 40.8, 38.3, 36.7, 29.2, 15.8, 66.7, 40.0, 45.0, 52.5, 45.0, 48.3, 47.5, 35.0, 45.8, 62.5, 68.3, 80.8, 80.8, 79.2, 77.5, 80.8, 82.5, 79.2, 77.5, 88.3, 85.0, 83.3, 82.5, 70.8, 58.3, 47.5, 65.8]}, "mcMed": {"1y": [0.0, 0.0, -1.56, -3.3], "3y": [0.0, 0.64, -0.02, -0.01], "5y": [0.0, 0.91, 3.29, 2.27], "10y": [0.0, 0.88, 3.15, 2.74]}, "mcWin": {"1y": [40.5, 39.3, 39.8, 17.6], "3y": [43.3, 52.3, 72.3, 97.3], "5y": [47.3, 55.1, 72.5, 94.5], "10y": [53.3, 55.0, 81.5, 96.7]}, "bhMed": [4.55, 1.21, -0.08, -1.12], "years": ["2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"], "exp": {"1y": [0.0, 25.0, 50.0, 100.0, 41.7, 16.7, 0.0, 30.0], "3y": [100.0, 50.0, 0.0, 75.0, 100.0, 66.7, 0.0, 0.0], "5y": [0.0, 33.3, 0.0, 75.0, 100.0, 100.0, 58.3, 0.0], "10y": [0.0, 0.0, 0.0, 25.0, 100.0, 100.0, 58.3, 0.0]}, "yret": {"1y": [0.0, 12.9, -5.2, -8.9, -10.9, 10.0, 0.0, -14.5], "3y": [25.0, 17.2, 0.0, 3.5, -22.6, 24.9, 0.0, 0.0], "5y": [0.0, 27.2, 0.0, 3.5, -22.6, 18.7, 17.7, 0.0], "10y": [0.0, 0.0, 0.0, 18.4, -22.6, 18.7, 17.7, 0.0]}, "bhret": [25.1, 33.7, -14.7, -8.9, -22.6, 18.7, 23.3, -16.0]};
+var C = { '1y':'#94a3b8', '3y':'#2563eb', '5y':'#dc2626', '10y':'#7c3aed' };
+var N = { '1y':'1年', '3y':'3年', '5y':'5年', '10y':'10年' };
+
+echarts.init(document.getElementById('c1')).setOption({
+  tooltip: { trigger: 'axis', valueFormatter: function(v){ return v; } },
+  legend: { data: ['买入持有','1年分位','3年分位','5年分位','10年分位'], top: 0 },
+  grid: { left: 55, right: 24, top: 44, bottom: 34 },
+  xAxis: { type: 'category', data: D.ym, axisLabel: { interval: 11 } },
+  yAxis: { type: 'value', name: '净值', scale: true },
+  series: [
+    { name: '买入持有', type: 'line', data: D.bh_eq, symbol: 'none', lineStyle: { width: 1.6, type: 'dashed', color: '#0f172a' }, itemStyle: { color: '#0f172a' } },
+    { name: '1年分位', type: 'line', data: D.eq['1y'], symbol: 'none', lineStyle: { width: 1.8, color: C['1y'] }, itemStyle: { color: C['1y'] } },
+    { name: '3年分位', type: 'line', data: D.eq['3y'], symbol: 'none', lineStyle: { width: 2.2, color: C['3y'] }, itemStyle: { color: C['3y'] } },
+    { name: '5年分位', type: 'line', data: D.eq['5y'], symbol: 'none', lineStyle: { width: 2.6, color: C['5y'] }, itemStyle: { color: C['5y'] } },
+    { name: '10年分位', type: 'line', data: D.eq['10y'], symbol: 'none', lineStyle: { width: 2.2, color: C['10y'] }, itemStyle: { color: C['10y'] } }
+  ]
+});
+
+echarts.init(document.getElementById('c2')).setOption({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['PE-TTM','1年分位','3年分位','5年分位','10年分位'], top: 0 },
+  grid: { left: 58, right: 62, top: 44, bottom: 34 },
+  xAxis: { type: 'category', data: D.ym, axisLabel: { interval: 11 } },
+  yAxis: [
+    { type: 'value', name: 'PE', min: 9, max: 17 },
+    { type: 'value', name: '分位 %', min: 0, max: 100, splitLine: { show: false } }
+  ],
+  series: [
+    { name: 'PE-TTM', type: 'line', data: D.pe, symbol: 'none', lineStyle: { width: 2.4, color: '#0f172a' }, itemStyle: { color: '#0f172a' }, areaStyle: { color: 'rgba(15,23,42,0.06)' } },
+    { name: '1年分位', type: 'line', yAxisIndex: 1, data: D.pct['1y'], symbol: 'none', lineStyle: { width: 1, color: C['1y'], opacity: 0.7 }, itemStyle: { color: C['1y'] },
+      markLine: { silent: true, symbol: 'none', label: { show: false }, lineStyle: { type: 'dashed', color: '#cbd5e1' }, data: [{ yAxis: 20 }, { yAxis: 80 }] } },
+    { name: '3年分位', type: 'line', yAxisIndex: 1, data: D.pct['3y'], symbol: 'none', lineStyle: { width: 1.4, color: C['3y'], opacity: 0.8 }, itemStyle: { color: C['3y'] } },
+    { name: '5年分位', type: 'line', yAxisIndex: 1, data: D.pct['5y'], symbol: 'none', lineStyle: { width: 1.8, color: C['5y'] }, itemStyle: { color: C['5y'] } },
+    { name: '10年分位', type: 'line', yAxisIndex: 1, data: D.pct['10y'], symbol: 'none', lineStyle: { width: 1.6, color: C['10y'] }, itemStyle: { color: C['10y'] } }
+  ]
+});
+
+echarts.init(document.getElementById('c3')).setOption({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['12月','24月','36月','60月'], top: 0, textStyle: { fontSize: 11 } },
+  grid: { left: 46, right: 14, top: 44, bottom: 28 },
+  xAxis: { type: 'category', data: ['1年','3年','5年','10年'] },
+  yAxis: { type: 'value', name: '年化 %' },
+  series: [
+    { name: '12月', type: 'bar', data: [D.mcMed['1y'][0], D.mcMed['3y'][0], D.mcMed['5y'][0], D.mcMed['10y'][0]], itemStyle: { color: '#cbd5e1' } },
+    { name: '24月', type: 'bar', data: [D.mcMed['1y'][1], D.mcMed['3y'][1], D.mcMed['5y'][1], D.mcMed['10y'][1]], itemStyle: { color: '#94a3b8' } },
+    { name: '36月', type: 'bar', data: [D.mcMed['1y'][2], D.mcMed['3y'][2], D.mcMed['5y'][2], D.mcMed['10y'][2]], itemStyle: { color: '#475569' } },
+    { name: '60月', type: 'bar', data: [D.mcMed['1y'][3], D.mcMed['3y'][3], D.mcMed['5y'][3], D.mcMed['10y'][3]], itemStyle: { color: '#1e293b' } }
+  ]
+});
+
+echarts.init(document.getElementById('c4')).setOption({
+  tooltip: { trigger: 'axis', valueFormatter: function(v){ return v + '%'; } },
+  legend: { data: ['12月','24月','36月','60月'], top: 0, textStyle: { fontSize: 11 } },
+  grid: { left: 46, right: 14, top: 44, bottom: 28 },
+  xAxis: { type: 'category', data: ['1年','3年','5年','10年'] },
+  yAxis: { type: 'value', name: '胜率 %', max: 100 },
+  series: [
+    { name: '12月', type: 'bar', data: [D.mcWin['1y'][0], D.mcWin['3y'][0], D.mcWin['5y'][0], D.mcWin['10y'][0]], itemStyle: { color: '#cbd5e1' }, markLine: { silent: true, symbol: 'none', data: [{ yAxis: 50, lineStyle: { color: '#dc2626', type: 'dashed' }, label: { formatter: '50%', position: 'end', fontSize: 10 } }] } },
+    { name: '24月', type: 'bar', data: [D.mcWin['1y'][1], D.mcWin['3y'][1], D.mcWin['5y'][1], D.mcWin['10y'][1]], itemStyle: { color: '#94a3b8' } },
+    { name: '36月', type: 'bar', data: [D.mcWin['1y'][2], D.mcWin['3y'][2], D.mcWin['5y'][2], D.mcWin['10y'][2]], itemStyle: { color: '#475569' } },
+    { name: '60月', type: 'bar', data: [D.mcWin['1y'][3], D.mcWin['3y'][3], D.mcWin['5y'][3], D.mcWin['10y'][3]], itemStyle: { color: '#1e293b' } }
+  ]
+});
+
+echarts.init(document.getElementById('c5')).setOption({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['1年持仓','3年持仓','5年持仓','10年持仓','沪深300当年涨跌'], top: 0, textStyle: { fontSize: 11 } },
+  grid: { left: 50, right: 55, top: 46, bottom: 28 },
+  xAxis: { type: 'category', data: D.years },
+  yAxis: [
+    { type: 'value', name: '持仓 %', max: 110 },
+    { type: 'value', name: '涨跌 %', splitLine: { show: false } }
+  ],
+  series: [
+    { name: '1年持仓', type: 'bar', data: D.exp['1y'], itemStyle: { color: '#cbd5e1' } },
+    { name: '3年持仓', type: 'bar', data: D.exp['3y'], itemStyle: { color: '#93c5fd' } },
+    { name: '5年持仓', type: 'bar', data: D.exp['5y'], itemStyle: { color: '#fca5a5' } },
+    { name: '10年持仓', type: 'bar', data: D.exp['10y'], itemStyle: { color: '#ddd6fe' } },
+    { name: '沪深300当年涨跌', type: 'line', yAxisIndex: 1, data: D.bhret, symbol: 'circle', symbolSize: 6, lineStyle: { width: 2, color: '#0f172a' }, itemStyle: { color: '#0f172a' } }
+  ]
+});
+
+window.addEventListener('resize', function(){
+  ['c1','c2','c3','c4','c5'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) { var c = echarts.getInstanceByDom(el); if (c) c.resize(); }
+  });
+});
+</script>
+</body></html>

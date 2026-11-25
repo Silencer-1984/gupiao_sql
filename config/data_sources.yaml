@@ -1,0 +1,860 @@
+# =============================================================================
+# A 股风格轮动研究 —— 数据源统一配置
+# -----------------------------------------------------------------------------
+# 说明：
+#   1. 本文件是「字段 → 接口」的唯一定义来源，verify_data_sources.py 直接读取执行。
+#   2. 所有 interface 均为 AkShare 真实函数名，已逐个实际调用验证（见 docs/data_quality_report.md）。
+#   3. loop 表示对同一接口按参数列表逐个调用（每个代码一次请求）。
+#   4. column_map 只做「字段改名」，不改数据；原始数据同时会被完整归档到 raw_archive 表。
+#   5. status: verified / partial / failed —— 由最近一次验证运行决定，此处为初始期望值。
+# =============================================================================
+
+meta:
+  project: ashare_style_rotation
+  db_path: data/ashare.db
+  research_start: "2015-01-01"
+  research_end: "2026-12-31"
+  fetch_note: "交易日按交易所日历；宏观数据按统计月份记录，另记发布日期（如接口提供）"
+
+# ---------------------------------------------------------------------------
+# A. 市场行情（成长/价值/周期共用）
+# ---------------------------------------------------------------------------
+datasets:
+
+  - id: px_index_daily_csi
+    category: 行情
+    cn_name: 中证指数日行情（官方）
+    en_name: index_daily_csi
+    interface: index_hist_csindex
+    params: {start_date: "20150101", end_date: "20261231"}
+    loop: {param: symbol, values: ["000300", "000985", "000922", "H30269", "930955", "000819", "000688"]}
+    freq: 日
+    table: px_index_daily_csi
+    key_cols: [index_code, trade_date]
+    column_map:
+      日期: trade_date
+      指数代码: index_code
+      指数中文全称: index_name_cn
+      指数中文简称: index_name_short
+      开盘: open
+      最高: high
+      最低: low
+      收盘: close
+      涨跌: change
+      涨跌幅: pct_chg
+      成交量: volume
+      成交金额: amount
+      样本数量: sample_size
+      滚动市盈率: pe_ttm
+    fields: [trade_date, index_code, index_name_cn, open, high, low, close, volume, amount, pct_chg, sample_size, pe_ttm]
+    unit_note: "成交量=股/份；成交金额=亿元；涨跌幅=%；pe_ttm=倍"
+    notes: "中证指数公司官方接口。含滚动市盈率(指数级PE-TTM)，是本项目指数估值的主来源。节假日/停市日可能出现与前一日完全重复的行，需按日期去重。"
+
+  - id: px_index_daily_cni
+    category: 行情
+    cn_name: 国证指数日行情
+    en_name: index_daily_cni
+    interface: index_hist_cni
+    params: {start_date: "20150101", end_date: "20261231"}
+    loop: {param: symbol, values: ["399006", "399296"]}
+    freq: 日
+    table: px_index_daily_cni
+    key_cols: [index_code, trade_date]
+    column_map:
+      日期: trade_date
+      开盘价: open
+      最高价: high
+      最低价: low
+      收盘价: close
+      涨跌幅: pct_chg_ratio
+      成交量: volume
+      成交额: amount
+    fields: [trade_date, index_code, open, high, low, close, pct_chg_ratio, volume, amount]
+    unit_note: "涨跌幅为小数(0.0512=+5.12%)，与中证接口的百分数口径不同；成交量=万手；成交额=亿元"
+    notes: "创业板指(399006)、创业板成长/创成长(399296)只能从国证接口取，中证接口不覆盖。单位口径与中证不同，入库后需统一换算。"
+
+  - id: px_index_daily_tx
+    category: 行情
+    cn_name: 指数日行情（腾讯，含换手率）
+    en_name: index_daily_tx
+    interface: index_zh_daily_tx
+    params: {}
+    loop: {param: symbol, values: ["sh000300", "sh000985", "sh000922", "sh000819", "sh000688", "sz399006"]}
+    freq: 日
+    table: px_index_daily_tx
+    key_cols: [index_code, trade_date]
+    column_map:
+      date: trade_date
+      open: open
+      close: close
+      high: high
+      low: low
+      volume: volume
+      turnover: turnover
+      amount: amount
+    fields: [trade_date, open, close, high, low, volume, turnover, amount]
+    unit_note: "turnover=换手率(小数)；amount=元"
+    notes: "换手率的补充来源。腾讯接口早期年份换手率可能为 0 或缺失，需与成交额/流通市值交叉校验。东方财富同源接口(index_zh_hist_em)字段最全但存在 IP 限流，故降级为备用。"
+
+  - id: px_index_daily_em
+    category: 行情
+    cn_name: 指数日行情（东方财富，备用）
+    en_name: index_daily_em
+    interface: index_zh_hist_em
+    params: {period: daily, start_date: "20150101", end_date: "20261231"}
+    loop: {param: symbol, values: ["000688"]}
+    freq: 日
+    table: px_index_daily_em
+    key_cols: [index_code, trade_date]
+    column_map:
+      日期: trade_date
+      开盘: open
+      收盘: close
+      最高: high
+      最低: low
+      成交量: volume
+      成交额: amount
+      振幅: amplitude
+      涨跌幅: pct_chg
+      涨跌额: change
+      换手率: turnover
+    fields: [trade_date, open, close, high, low, volume, amount, amplitude, pct_chg, change, turnover]
+    notes: "字段最全（含换手率），但 push2 行情服务器对同一 IP 限流严重，实测多次 Push2RateLimitError。仅作备用/校验，不作主力来源。"
+
+  - id: px_etf_daily
+    category: 行情
+    cn_name: ETF 日行情（新浪）
+    en_name: etf_daily
+    interface: fund_etf_hist_sina
+    params: {}
+    loop: {param: symbol, values: ["sh510880", "sh512890", "sh588000", "sz159915", "sh512400"]}
+    freq: 日
+    table: px_etf_daily
+    key_cols: [etf_code, trade_date]
+    column_map:
+      date: trade_date
+      prevclose: prev_close
+      open: open
+      high: high
+      low: low
+      close: close
+      volume: volume
+      amount: amount
+    fields: [trade_date, prev_close, open, high, low, close, volume, amount]
+    notes: "用于后续研究真实可交易标的，不能替代指数本身表现。ETF 存在成立日，成立前无数据；prev_close 多为空。510880 自 2007 年、588000 自 2020 年起。"
+
+  - id: px_index_meta
+    category: 行情
+    cn_name: 指数基本信息（发布日）
+    en_name: index_meta
+    interface: index_stock_info
+    params: {}
+    freq: 快照
+    table: px_index_meta
+    key_cols: [index_code]
+    column_map:
+      index_code: index_code
+      display_name: index_name
+      publish_date: publish_date
+    fields: [index_code, index_name, publish_date]
+    notes: "仅提供发布日，不提供基日。基日/基期需从中证、国证官网单独取得（本项目标记为缺口）。"
+
+  - id: px_index_cons_csi
+    category: 行情
+    cn_name: 指数成分股与权重（中证官方）
+    en_name: index_constituents_csi
+    interface: index_stock_cons_weight_csindex
+    params: {}
+    loop: {param: symbol, values: ["000300", "000922", "000819", "000688", "000985", "930955", "H30269"]}
+    freq: 快照
+    table: px_index_cons_csi
+    key_cols: [index_code, stock_code, as_of_date]
+    column_map:
+      日期: as_of_date
+      指数代码: index_code
+      指数名称: index_name
+      成分券代码: stock_code
+      成分券名称: stock_name
+      交易所: exchange
+      权重: weight
+    fields: [as_of_date, index_code, index_name, stock_code, stock_name, exchange, weight]
+    notes: "中证官网口径，含成分股权重与快照日期，数量完整（沪深300=300只），优于 index_stock_cons。仍为当前快照，历史各期成分股需按月留档才能还原。官方文件接口偶发超时，重试即可。"
+
+  - id: px_index_cons
+    category: 行情
+    cn_name: 指数成分股（当前快照，新浪口径）
+    en_name: index_constituents
+    interface: index_stock_cons
+    params: {}
+    loop: {param: symbol, values: ["000300", "000922", "000819", "000688", "000985", "930955", "H30269"]}
+    freq: 快照
+    table: px_index_cons
+    key_cols: [index_code, stock_code, include_date]
+    column_map:
+      品种代码: stock_code
+      品种名称: stock_name
+      纳入日期: include_date
+    fields: [stock_code, stock_name, include_date]
+    notes: "只有当前成分股 + 纳入日期，不能还原历史每期成分股。实测该接口返回大量重复行：沪深300 返回 300 行但仅 289 个不同代码，中证全指返回 5117 行但仅 1930 个不同代码，成分股不完整，故仅作补充，主用 px_index_cons_csi。回测中若用当前成分股回溯 2015 年会产生前视偏差，必须自建历史成分股快照。"
+
+# ---------------------------------------------------------------------------
+# B. 估值（成长/价值/周期共用，指数级与个股级）
+# ---------------------------------------------------------------------------
+  - id: val_index_value_csi
+    category: 估值
+    cn_name: 中证指数估值（PE/股息率）
+    en_name: index_valuation_csi
+    interface: index_value_csindex
+    params: {}
+    loop: {param: symbol, values: ["000300", "000985", "000922", "H30269", "930955", "000819", "000688"]}
+    freq: 日（仅最近约 20 个交易日）
+    table: val_index_value_csi
+    key_cols: [index_code, trade_date]
+    column_map:
+      日期: trade_date
+      指数代码: index_code
+      市盈率1: pe_static
+      市盈率2: pe_ttm
+      股息率1: div_yield_1
+      股息率2: div_yield_2
+    fields: [trade_date, index_code, pe_static, pe_ttm, div_yield_1, div_yield_2]
+    notes: "只能取最近约 20 个交易日，无历史序列。红利指数的历史股息率因此无法用免费接口还原（重要缺口）。股息率1/2 分别对应不同计算口径（近12个月现金分红/预测），不可混用。"
+
+  - id: val_index_pe_lg
+    category: 估值
+    cn_name: 指数市盈率（乐咕，月度）
+    en_name: index_pe_lg
+    interface: stock_index_pe_lg
+    params: {}
+    loop: {param: symbol, values: ["沪深300", "上证50", "中证500", "上证180"]}
+    freq: 月
+    table: val_index_pe_lg
+    key_cols: [index_name, trade_date]
+    column_map:
+      日期: trade_date
+      指数: index_close
+      等权静态市盈率: pe_static_ew
+      静态市盈率: pe_static
+      静态市盈率中位数: pe_static_median
+      等权滚动市盈率: pe_ttm_ew
+      滚动市盈率: pe_ttm
+      滚动市盈率中位数: pe_ttm_median
+    fields: [trade_date, index_name, index_close, pe_ttm, pe_ttm_ew, pe_ttm_median, pe_static, pe_static_median]
+    notes: "月度频率，2005 年起。实测仅支持 沪深300/上证50/中证500/上证180，创业板指会抛 KeyError；不含中证红利/红利低波/有色，这些指数估值只能用中证官方口径。"
+
+  - id: val_index_pb_lg
+    category: 估值
+    cn_name: 指数市净率（乐咕，月度）
+    en_name: index_pb_lg
+    interface: stock_index_pb_lg
+    params: {}
+    loop: {param: symbol, values: ["沪深300", "上证50", "中证500", "上证180"]}
+    freq: 月
+    table: val_index_pb_lg
+    key_cols: [index_name, trade_date]
+    column_map:
+      日期: trade_date
+      指数: index_close
+      市净率: pb
+      等权市净率: pb_ew
+      市净率中位数: pb_median
+    fields: [trade_date, index_name, index_close, pb, pb_ew, pb_median]
+    notes: "月度频率。中证官方接口不提供指数 PB 序列，指数级 PB 历史基本只能靠此源。"
+
+  - id: val_a_dividend_yield
+    category: 估值
+    cn_name: 全 A 股股息率
+    en_name: a_share_dividend_yield
+    interface: stock_a_gxl_lg
+    params: {}
+    freq: 日
+    table: val_a_dividend_yield
+    key_cols: [trade_date]
+    column_map:
+      日期: trade_date
+      股息率: div_yield
+    fields: [trade_date, div_yield]
+    notes: "全市场口径，非红利指数口径，仅用于市场整体无风险溢价对比。"
+
+  - id: val_congestion_lg
+    category: 估值
+    cn_name: 市场拥挤度（乐咕）
+    en_name: market_congestion
+    interface: stock_a_congestion_lg
+    params: {}
+    freq: 日
+    table: val_congestion_lg
+    key_cols: [trade_date]
+    column_map:
+      date: trade_date
+      close: index_close
+      congestion: congestion
+    fields: [trade_date, index_close, congestion]
+    notes: "全市场口径拥挤度，非风格层面。近期尾部存在空值，可用性不稳定。"
+
+  - id: val_stock_value_em
+    category: 估值
+    cn_name: 个股估值（PE/PB/PS）
+    en_name: stock_valuation
+    interface: stock_value_em
+    params: {}
+    loop: {param: symbol, values: ["300750", "688981", "002371", "600036", "601088", "600900", "601899", "600019", "600309"]}
+    freq: 日
+    table: val_stock_value_em
+    key_cols: [stock_code, trade_date]
+    column_map:
+      数据日期: trade_date
+      当日收盘价: close
+      当日涨跌幅: pct_chg
+      总市值: total_mv
+      流通市值: float_mv
+      总股本: total_shares
+      流通股本: float_shares
+      市盈率(TTM): pe_ttm
+      市盈率(静): pe_static
+      市净率: pb
+      PEG值: peg
+      市现率: pcf
+      市销率: ps_ttm
+    fields: [trade_date, close, pct_chg, total_mv, float_mv, pe_ttm, pe_static, pb, ps_ttm, pcf, peg]
+    notes: "个股级 PE-TTM/PB/PS-TTM/市现率，是成长风格 PS 估值的唯一免费来源。历史起点约 2018 年初，无法覆盖 2015-2017。全市场采集需按股票循环，成本较高。"
+
+# ---------------------------------------------------------------------------
+# C. 基本面：成长 / 价值 / 周期
+# ---------------------------------------------------------------------------
+  - id: fin_yjbb
+    category: 基本面
+    cn_name: 业绩报表（东财，按报告期）
+    en_name: earnings_report
+    interface: stock_yjbb_em
+    params: {}
+    loop: {param: date, values: ["20150331", "20150630", "20150930", "20151231", "20160331", "20160630", "20160930", "20161231", "20170331", "20170630", "20170930", "20171231", "20180331", "20180630", "20180930", "20181231", "20190331", "20190630", "20190930", "20191231", "20200331", "20200630", "20200930", "20201231", "20210331", "20210630", "20210930", "20211231", "20220331", "20220630", "20220930", "20221231", "20230331", "20230630", "20230930", "20231231", "20240331", "20240630", "20240930", "20241231", "20250331", "20250630", "20250930", "20251231", "20260331", "20260630", "20260930"]}
+    freq: 季度
+    table: fin_yjbb
+    key_cols: [report_period, stock_code]
+    column_map:
+      股票代码: stock_code
+      股票简称: stock_name
+      每股收益: eps
+      营业总收入-营业总收入: revenue
+      营业总收入-同比增长: revenue_yoy
+      营业总收入-季度环比增长: revenue_qoq
+      净利润-净利润: net_profit
+      净利润-同比增长: net_profit_yoy
+      净利润-季度环比增长: net_profit_qoq
+      每股净资产: bps
+      净资产收益率: roe
+      每股经营现金流量: ocf_ps
+      销售毛利率: gross_margin
+      所处行业: industry_em
+      最新公告日期: announce_date
+    fields: [stock_code, stock_name, revenue, revenue_yoy, revenue_qoq, net_profit, net_profit_yoy, net_profit_qoq, eps, bps, roe, ocf_ps, gross_margin, industry_em, announce_date]
+    notes: "全市场季度面板，含最新公告日期(announce_date)，可用于构造 point-in-time 财报可用时点，避免未来函数。缺扣非净利润、研发费用、净利率（需另接口或由利润表计算）。"
+
+  - id: fin_disclosure
+    category: 基本面
+    cn_name: 业绩预约披露与实际披露时间（point-in-time）
+    en_name: report_disclosure
+    interface: stock_yysj_em
+    params: {symbol: 沪深A股}
+    loop: {param: date, values: ["20150331", "20150630", "20150930", "20151231", "20160331", "20160630", "20160930", "20161231", "20170331", "20170630", "20170930", "20171231", "20180331", "20180630", "20180930", "20181231", "20190331", "20190630", "20190930", "20191231", "20200331", "20200630", "20200930", "20201231", "20210331", "20210630", "20210930", "20211231", "20220331", "20220630", "20220930", "20221231", "20230331", "20230630", "20230930", "20231231", "20240331", "20240630", "20240930", "20241231", "20250331", "20250630", "20250930", "20251231", "20260331", "20260630", "20260930"]}
+    freq: 季度
+    table: fin_disclosure
+    key_cols: [report_period, stock_code]
+    column_map:
+      股票代码: stock_code
+      股票简称: stock_name
+      首次预约时间: first_plan_date
+      一次变更日期: change_date_1
+      二次变更日期: change_date_2
+      三次变更日期: change_date_3
+      实际披露时间: actual_date
+    fields: [stock_code, stock_name, first_plan_date, change_date_1, change_date_2, change_date_3, actual_date]
+    notes: "本项目的 point-in-time 基准表。stock_yjbb_em 的『最新公告日期』实测系统性滞后约 1 年（如 2025Q1 有 98% 显示 2026 年公告），不可用于回测；必须用本表的『实际披露时间』作为财报可得日。"
+
+  - id: fin_indicator_sina
+    category: 基本面
+    cn_name: 财务指标（新浪，按股票）
+    en_name: fin_indicator_sina
+    interface: stock_financial_analysis_indicator
+    params: {start_year: "2015"}
+    loop: {param: symbol, values: ["300750", "688981", "002371", "600036", "601088", "600900", "601899", "600019", "600309"]}
+    freq: 季度
+    table: fin_indicator_sina
+    key_cols: [stock_code, report_date]
+    column_map:
+      日期: report_date
+      摊薄每股收益(元): eps
+      每股净资产_调整后(元): bps
+      每股经营性现金流(元): ocf_ps
+      销售毛利率(%): gross_margin
+      销售净利率(%): net_margin
+      净资产收益率(%): roe
+      加权净资产收益率(%): roe_weighted
+      主营业务收入增长率(%): revenue_yoy
+      净利润增长率(%): net_profit_yoy
+      扣除非经常性损益后的净利润(元): net_profit_deducted
+      股息发放率(%): payout_ratio
+      资产负债率(%): debt_ratio
+    fields: [report_date, eps, bps, ocf_ps, gross_margin, net_margin, roe, roe_weighted, revenue_yoy, net_profit_yoy, net_profit_deducted, payout_ratio, debt_ratio]
+    notes: "86 列，含净利率、扣非净利润、股息发放率。缺陷：无公告日期，只有报告期，直接用会产生未来函数；需与 fin_yjbb.announce_date 关联后才能用于回测。全市场采集为 5000+ 次请求，本阶段仅验证代表股票。"
+
+  - id: fin_profit_forecast
+    category: 基本面
+    cn_name: 分析师盈利预测（当前快照）
+    en_name: profit_forecast
+    interface: stock_profit_forecast_em
+    params: {symbol: 半导体}
+    freq: 快照
+    table: fin_profit_forecast
+    key_cols: [stock_code]
+    column_map:
+      代码: stock_code
+      名称: stock_name
+      研报数: report_count
+    fields: [stock_code, stock_name, report_count]
+    notes: "只有当前时点的预测 EPS 与评级分布，没有历史预测序列、没有上调/下调修正。未来 12 个月净利润预测及修正数据在免费源中不可得，列为缺失项。"
+
+  - id: fin_dividend_stat
+    category: 基本面
+    cn_name: 分红统计（全市场）
+    en_name: dividend_stat
+    interface: stock_history_dividend
+    params: {}
+    freq: 快照
+    table: fin_dividend_stat
+    key_cols: [stock_code]
+    column_map:
+      代码: stock_code
+      名称: stock_name
+      上市日期: list_date
+      累计股息: dividend_cum
+      年均股息: dividend_avg
+      分红次数: dividend_count
+      融资总额: financing_total
+      融资次数: financing_count
+    fields: [stock_code, stock_name, list_date, dividend_cum, dividend_avg, dividend_count, financing_total, financing_count]
+    notes: "只有累计口径统计，没有逐年分红明细；无法直接算连续分红年数与分红支付率。"
+
+  - id: fin_dividend_detail
+    category: 基本面
+    cn_name: 个股历史分红明细（巨潮）
+    en_name: dividend_detail
+    interface: stock_dividend_cninfo
+    params: {}
+    loop: {param: symbol, values: ["600036", "601088", "600900", "601899", "600019"]}
+    freq: 事件（按次）
+    table: fin_dividend_detail
+    key_cols: [stock_code, ex_date, report_period]
+    column_map:
+      实施方案公告日期: announce_date
+      送股比例: bonus_ratio
+      转增比例: transfer_ratio
+      派息比例: cash_div_per10
+      股权登记日: record_date
+      除权日: ex_date
+      派息日: pay_date
+      分红类型: dividend_type
+      报告时间: report_period
+    fields: [announce_date, bonus_ratio, transfer_ratio, cash_div_per10, record_date, ex_date, pay_date, dividend_type, report_period]
+    notes: "含派息比例(每10股派息)、除权日、报告期，可重建过去12个月实际现金分红(TTM股息率)与连续分红年数。需逐股请求，红利指数 100 只成分股约 100 次调用，可接受。"
+
+  - id: fin_dividend_detail_sina
+    category: 基本面
+    cn_name: 个股历史分红明细（新浪，备用）
+    en_name: dividend_detail_sina
+    interface: stock_history_dividend_detail
+    params: {indicator: 分红}
+    loop: {param: symbol, values: ["600036", "601088", "600900", "601899", "600019"]}
+    freq: 事件（按次）
+    table: fin_dividend_detail_sina
+    key_cols: [stock_code, announce_date, ex_date]
+    column_map:
+      公告日期: announce_date
+      送股: bonus_ratio
+      转增: transfer_ratio
+      派息: cash_div_per10
+      进度: progress
+      除权除息日: ex_date
+      股权登记日: record_date
+    fields: [announce_date, bonus_ratio, transfer_ratio, cash_div_per10, progress, ex_date, record_date]
+    notes: "巨潮接口(stock_dividend_cninfo)对部分股票返回 KeyError: 'records'（实测招商银行/紫金矿业/宝钢失败），新浪接口可作为兜底。缺陷：无报告期字段、无派息日，只能按公告日/除权日定位。"
+
+  - id: fin_industry_clf_sw
+    category: 基本面
+    cn_name: 申万行业分类变更历史
+    en_name: industry_classification_sw
+    interface: stock_industry_clf_hist_sw
+    params: {}
+    freq: 事件
+    table: fin_industry_clf_sw
+    key_cols: [stock_code, start_date]
+    column_map:
+      symbol: stock_code
+      start_date: start_date
+      industry_code: industry_code
+      update_time: update_time
+    fields: [stock_code, start_date, industry_code, update_time]
+    notes: "解决『历史行业分类变化』要求：每只股票在不同区间归属不同申万行业，回测时须按 start_date 取当时分类，不能用今天的分类回溯。"
+
+# ---------------------------------------------------------------------------
+# D. 宏观
+# ---------------------------------------------------------------------------
+  - id: macro_pmi
+    category: 宏观
+    cn_name: 制造业与非制造业 PMI
+    en_name: pmi
+    interface: macro_china_pmi
+    params: {}
+    freq: 月
+    table: macro_pmi
+    key_cols: [stat_month]
+    column_map:
+      月份: stat_month
+      制造业-指数: pmi_manufacturing
+      制造业-同比增长: pmi_manufacturing_yoy
+      非制造业-指数: pmi_non_manufacturing
+      非制造业-同比增长: pmi_non_manufacturing_yoy
+    fields: [stat_month, pmi_manufacturing, pmi_manufacturing_yoy, pmi_non_manufacturing, pmi_non_manufacturing_yoy]
+    notes: "stat_month 形如『2026年10月份』，为统计月份而非发布日。PMI 于次月首个工作日左右发布，回测须滞后 1 个月使用。"
+
+  - id: macro_cpi
+    category: 宏观
+    cn_name: CPI
+    en_name: cpi
+    interface: macro_china_cpi
+    params: {}
+    freq: 月
+    table: macro_cpi
+    key_cols: [stat_month]
+    column_map:
+      月份: stat_month
+      全国-当月: cpi_index
+      全国-同比增长: cpi_yoy
+      全国-环比增长: cpi_mom
+      全国-累计: cpi_ytd
+    fields: [stat_month, cpi_index, cpi_yoy, cpi_mom, cpi_ytd]
+    notes: "无发布日字段；CPI 通常次月中旬发布。"
+
+  - id: macro_ppi
+    category: 宏观
+    cn_name: PPI
+    en_name: ppi
+    interface: macro_china_ppi
+    params: {}
+    freq: 月
+    table: macro_ppi
+    key_cols: [stat_month]
+    column_map:
+      月份: stat_month
+      当月: ppi_index
+      当月同比增长: ppi_yoy
+      累计: ppi_ytd
+    fields: [stat_month, ppi_index, ppi_yoy, ppi_ytd]
+    notes: "周期风格核心指标。无发布日字段，须按统计局发布节奏（次月 9 日左右）滞后使用。"
+
+  - id: macro_money_supply
+    category: 宏观
+    cn_name: 货币供应量 M0/M1/M2
+    en_name: money_supply
+    interface: macro_china_money_supply_em
+    params: {}
+    freq: 月
+    table: macro_money_supply
+    key_cols: [stat_month]
+    column_map:
+      月份: stat_month
+      货币和准货币(M2)-数量(亿元): m2_amount
+      货币和准货币(M2)-同比增长: m2_yoy
+      货币(M1)-数量(亿元): m1_amount
+      货币(M1)-同比增长: m1_yoy
+      流通中的现金(M0)-数量(亿元): m0_amount
+      流通中的现金(M0)-同比增长: m0_yoy
+    fields: [stat_month, m2_amount, m2_yoy, m1_amount, m1_yoy, m0_amount, m0_yoy]
+    notes: "旧名 macro_china_money_supply 已废弃。M1-M2 剪刀差可作为风格轮动的流动性代理变量。"
+
+  - id: macro_social_financing
+    category: 宏观
+    cn_name: 社会融资规模增量
+    en_name: social_financing
+    interface: macro_china_social_financing
+    params: {}
+    freq: 月
+    table: macro_social_financing
+    key_cols: [stat_month]
+    column_map:
+      月份: stat_month
+      社会融资规模增量: sf_increment
+      其中-人民币贷款: sf_rmb_loan
+      其中-企业债券: sf_corp_bond
+      其中-非金融企业境内股票融资: sf_equity
+    fields: [stat_month, sf_increment, sf_rmb_loan, sf_corp_bond, sf_equity]
+    notes: "stat_month 为 YYYYMM 字符串。该源最新月份存在滞后/异常排序，入库后须按月份重新排序校验。社融存量同比增速需自行由增量累加计算。"
+
+  - id: macro_industrial_value_added
+    category: 宏观
+    cn_name: 工业增加值同比
+    en_name: industrial_value_added
+    interface: macro_china_industrial_value_added
+    params: {}
+    freq: 月
+    table: macro_industrial_value_added
+    key_cols: [stat_month]
+    column_map:
+      月份: stat_month
+      同比增长: iva_yoy
+      累计增长: iva_ytd
+      发布时间: publish_date
+    fields: [stat_month, iva_yoy, iva_ytd, publish_date]
+    notes: "虽有『发布时间』字段，但实为统计月首日（伪发布日），不可直接当可得日使用。"
+
+  - id: macro_industrial_profit
+    category: 宏观
+    cn_name: 规模以上工业企业主要经济指标（含利润总额）
+    en_name: industrial_profit
+    interface: macro_china_nbs_nation
+    params: {kind: 月度数据, path: "工业 > 工业企业主要经济指标", period: "2015-"}
+    freq: 月
+    table: macro_industrial_profit
+    key_cols: [indicator, stat_month]
+    pivot: {index: indicator, columns: stat_month}
+    fields: [indicator, stat_month, value]
+    notes: "国家统计局直连。返回为『指标 × 月份』宽表(76 行 × 129 列)，入库前需 unpivot 成长表。含利润总额、营业收入、亏损企业数等。缺陷：无发布日，且部分指标历史为空。"
+
+  - id: macro_fixed_asset_investment
+    category: 宏观
+    cn_name: 固定资产投资
+    en_name: fixed_asset_investment
+    interface: macro_china_fixed_asset_investment
+    params: {}
+    freq: 月
+    table: macro_fixed_asset_investment
+    key_cols: [stat_month]
+    column_map:
+      月份: stat_month
+      当月: fai_amount
+      同比增长: fai_yoy
+      环比增长: fai_mom
+      自年初累计: fai_ytd
+    fields: [stat_month, fai_amount, fai_yoy, fai_mom, fai_ytd]
+    notes: "仅自 2012 年起，早期存在空值。"
+
+  - id: macro_bond_yield
+    category: 宏观
+    cn_name: 中债国债收益率曲线（含 10 年）
+    en_name: treasury_yield
+    interface: bond_zh_us_yield_em
+    params: {}
+    freq: 日
+    table: macro_bond_yield
+    key_cols: [trade_date]
+    column_map:
+      日期: trade_date
+      中国国债收益率2年: cn_2y
+      中国国债收益率5年: cn_5y
+      中国国债收益率10年: cn_10y
+      中国国债收益率30年: cn_30y
+      中国国债收益率10年-2年: cn_10y_2y_spread
+    fields: [trade_date, cn_2y, cn_5y, cn_10y, cn_30y, cn_10y_2y_spread]
+    notes: "1990 年起日频，是红利股『股息率-国债收益率』利差的核心输入。同时含美债收益率，可作为全球利率环境参考。"
+
+  - id: macro_dr007
+    category: 宏观
+    cn_name: 银行间回购定盘利率（DR007）
+    en_name: dr007
+    interface: interest_rate_repo_hist_cm
+    params: {}
+    loop: {param: year, values: [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]}
+    freq: 日
+    table: macro_dr007
+    key_cols: [trade_date]
+    column_map:
+      date: trade_date
+      FR001: fr001
+      FR007: fr007
+      FR014: fr014
+      FDR001: fdr001
+      FDR007: fdr007
+      FDR014: fdr014
+    fields: [trade_date, fr001, fr007, fr014, fdr001, fdr007, fdr014]
+    notes: "FDR007 为存款类机构 7 天回购定盘利率，即 DR007 的近似。接口限制单次区间不超过 1 年，需按年循环。实测 2015-2016 年 FDR007 全为空，实际起点晚于 2017。"
+
+# ---------------------------------------------------------------------------
+# E. 资金与交易情绪
+# ---------------------------------------------------------------------------
+  - id: flow_margin_sse
+    category: 资金
+    cn_name: 上交所融资融券汇总
+    en_name: margin_sse
+    interface: stock_margin_sse
+    params: {}
+    loop: {param: year, values: [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]}
+    freq: 日
+    table: flow_margin_sse
+    key_cols: [trade_date]
+    column_map:
+      信用交易日期: trade_date
+      融资余额: margin_balance
+      融资买入额: margin_buy
+      融券余量: short_volume
+      融券余量金额: short_amount
+      融券卖出量: short_sell_volume
+      融资融券余额: margin_total
+    fields: [trade_date, margin_balance, margin_buy, short_volume, short_amount, short_sell_volume, margin_total]
+    unit_note: "单位：元"
+    notes: "单次查询返回行数有上限（实测约 2000 行，即 8 年左右），故按年循环抓取；仅沪市，需与深市合并得全市场两融。返回的『信用交易日期』为整型(YYYYMMDD)，入库已统一为字符串。"
+
+  - id: flow_margin_szse
+    category: 资金
+    cn_name: 深交所融资融券（全历史）
+    en_name: margin_szse
+    interface: stock_margin_szse_js
+    params: {}
+    freq: 日
+    table: flow_margin_szse
+    key_cols: [trade_date]
+    column_map:
+      日期: trade_date
+      融资买入额: margin_buy
+      融资余额: margin_balance
+      融券卖出量: short_sell_volume
+      融券余量: short_volume
+      融券余额: short_amount
+      融资融券余额: margin_total
+    fields: [trade_date, margin_buy, margin_balance, short_sell_volume, short_volume, short_amount, margin_total]
+    unit_note: "单位：元"
+    notes: "一次返回 2010 年至今全历史，优于 stock_margin_szse（后者仅支持单日，且单位为亿元）。注：同为深市两融，两个接口单位口径不同，不可混用。"
+
+  - id: flow_northbound
+    category: 资金
+    cn_name: 北向资金历史
+    en_name: northbound_flow
+    interface: stock_hsgt_hist_em
+    params: {symbol: 北向资金}
+    freq: 日
+    table: flow_northbound
+    key_cols: [trade_date]
+    column_map:
+      日期: trade_date
+      当日成交净买额: net_buy
+      买入成交额: buy_amount
+      卖出成交额: sell_amount
+      历史累计净买额: net_buy_cum
+      沪深300: hs300_close
+    fields: [trade_date, net_buy, buy_amount, sell_amount, net_buy_cum, hs300_close]
+    notes: "2024-08 起沪深港通停止披露日频净买入，尾部字段大面积为空。历史段（2014-11 至 2024-08）可用，之后不可用，构成结构性断点。"
+
+  - id: flow_szse_summary
+    category: 资金
+    cn_name: 深交所市场总貌（成交额/流通市值）
+    en_name: szse_summary
+    interface: stock_summary_szse
+    params: {date: "20261120"}
+    freq: 快照（单日）
+    table: flow_szse_summary
+    key_cols: [stat_date, sec_type]
+    column_map:
+      证券类别: sec_type
+      数量: count
+      成交金额: amount
+      总市值: total_mv
+      流通市值: float_mv
+    fields: [sec_type, count, amount, total_mv, float_mv]
+    notes: "仅支持单日查询，要得到历史序列需逐日循环(2015 年至今约 2600 次)，成本高。可用于校验由指数成交额推算的全市场换手率。上交所对应接口 stock_summary_sse 只返回最近交易日，无历史。"
+
+  - id: flow_etf_scale_sse
+    category: 资金
+    cn_name: 上交所 ETF 份额
+    en_name: etf_scale_sse
+    interface: fund_etf_scale_sse
+    params: {date: "20261120"}
+    freq: 快照（单日）
+    table: flow_etf_scale_sse
+    key_cols: [fund_code, stat_date]
+    column_map:
+      基金代码: fund_code
+      基金简称: fund_name
+      ETF类型: etf_type
+      统计日期: stat_date
+      基金份额: shares
+    fields: [fund_code, fund_name, etf_type, stat_date, shares]
+    notes: "单日快照，历史需逐日循环。ETF 份额变化是观察风格资金流入的可靠代理，但无法一次性取得长历史。"
+
+# ---------------------------------------------------------------------------
+# F. 周期（商品与库存）
+# ---------------------------------------------------------------------------
+  - id: cyc_futures_foreign
+    category: 周期
+    cn_name: 外盘商品期货（铜/铝/黄金/白银）
+    en_name: futures_foreign
+    interface: futures_foreign_hist_sina
+    params: {}
+    loop: {param: symbol, values: ["HG", "AHD", "GC", "SI"]}
+    freq: 日
+    table: cyc_futures_foreign
+    key_cols: [symbol, trade_date]
+    column_map:
+      date: trade_date
+      open: open
+      high: high
+      low: low
+      close: close
+      volume: volume
+      position: position
+      settlement: settlement
+    fields: [trade_date, open, high, low, close, volume, position, settlement]
+    unit_note: "HG=COMEX铜(美分/磅)；AHD=COMEX铝(美元/吨)；GC=COMEX黄金(美元/盎司)；SI=COMEX白银(美元/盎司)"
+    notes: "均为外盘，计价单位为美元，与国内沪铜/沪铝存在汇率与内外盘价差。volume/position 大量为 0，不宜做量能分析。历史起点约 2016-11，无法覆盖 2015 年。"
+
+  - id: cyc_sge_gold
+    category: 周期
+    cn_name: 上金所黄金现货（Au99.99）
+    en_name: sge_gold
+    interface: spot_hist_sge
+    params: {symbol: "Au99.99"}
+    freq: 日
+    table: cyc_sge_gold
+    key_cols: [trade_date]
+    column_map:
+      date: trade_date
+      open: open
+      close: close
+      low: low
+      high: high
+    fields: [trade_date, open, close, low, high]
+    unit_note: "元/克，人民币计价"
+    notes: "人民币金价，已含汇率因素，适合与 A 股周期板块对照。起点 2016-12。"
+
+  - id: cyc_inventory
+    category: 周期
+    cn_name: 期货库存（沪铜/沪铝）
+    en_name: futures_inventory
+    interface: futures_inventory_em
+    params: {}
+    loop: {param: symbol, values: ["沪铜", "沪铝"]}
+    freq: 日（仅近约 60 个交易日）
+    table: cyc_inventory
+    key_cols: [symbol, trade_date]
+    column_map:
+      日期: trade_date
+      库存: inventory
+      增减: inventory_chg
+    fields: [trade_date, inventory, inventory_chg]
+    notes: "仅返回近约 60 个交易日，无历史序列，无法用于 2015 年以来的库存周期研究。库存长历史需 Paid 源或交易所周报。"
+
+# ---------------------------------------------------------------------------
+# 补充：交易日历
+# ---------------------------------------------------------------------------
+  - id: dim_trade_calendar
+    category: 行情
+    cn_name: 交易日历
+    en_name: trade_calendar
+    interface: calendar_trade_date_hist_sina
+    params: {}
+    freq: 日
+    table: dim_trade_calendar
+    key_cols: [trade_date]
+    column_map:
+      trade_date: trade_date
+    fields: [trade_date]
+    notes: "用于对齐各源日期、剔除伪交易日（如中证接口在元旦等出现的重复行）。"

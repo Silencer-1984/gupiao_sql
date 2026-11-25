@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>沪深300 PE≤20% 买入机会事件研究</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+:root{--ink:#0f172a;--ink2:#475569;--mut:#94a3b8;--line:#e2e8f0;--bg:#f7f8fa;--card:#fff;--up:#c62828;--down:#1b7f4e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 -apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 28px 80px}
+h1{font-size:26px;margin:0 0 10px;line-height:1.35;letter-spacing:-.3px}
+h2{font-size:18px;margin:34px 0 12px;padding-left:11px;border-left:4px solid #1e293b}
+h3{font-size:14.5px;margin:20px 0 6px;color:var(--ink2)}
+.sub-t{color:var(--ink2);font-size:13.5px;margin-bottom:6px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin:16px 0}
+.verdict{background:#fff;border:1px solid var(--line);border-left:4px solid #c62828;border-radius:10px;padding:18px 22px;margin:18px 0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+.kpi .k{font-size:12.5px;color:var(--mut)} .kpi .v{font-size:22px;font-weight:700;margin:3px 0;letter-spacing:-.4px}
+.kpi .d{font-size:12px;color:var(--ink2)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}
+th,td{padding:8px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:#f8fafc;color:var(--ink2);font-size:11.5px;font-weight:600}
+th.nm,td.nm{text-align:left;font-weight:600}
+tbody tr:hover{background:#fcfdff}
+.c-up{color:var(--up)} .c-down{color:var(--down)}
+.note{font-size:12px;color:var(--mut);margin-top:7px}
+.chart{width:100%;height:360px}
+.sm{font-size:11.5px;color:var(--ink2)}
+ul{padding-left:20px;margin:8px 0} li{margin:6px 0}
+.dis{font-size:12.5px;color:var(--ink2);background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 20px;line-height:1.75}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+
+<div class="sub-t">沪深300（000300） · 2019-01~2026-11 · 数据源 val_index_pe_lg（PE-TTM 加权）</div>
+<h1>2019 年以来，PE≤20% 的买入机会有多少次？买了拿到今天，每年比大盘强多少？</h1>
+
+<div class="verdict">
+<b>机会数</b>：3 年 PE 分位 ≤20% 共 <b>9 次</b>独立机会（21 个月）；5 年 PE ≤20% 共 <b>7 次</b>（20 个月）。连续低于 20% 的月份合并算一次。<br>
+<b>只买不卖，结果是失败的</b>：在这些时点各投 1 元持有到今天，3 年平均只赚 <b class="c-down">+4.7%</b>、5 年 <b class="c-down">+3.7%</b>（累计，非年化），而 2019-01 买入大盘拿到今天是 <b class="c-up">+23.5%</b>。9 次里有 3 次亏损。原因：2022-2023 年 PE 分位持续低于 20%，信号在下跌途中反复触发，属于"越买越套"。<br>
+<b>收益几乎全部来自卖出纪律</b>：同样在这些时点买入、但首次分位回到 80% 就卖出，3 年平均 <b class="c-up">+14.6%</b>（平均 17.3 个月）、5 年 <b class="c-up">+22.4%</b>（平均 25.9 个月）。5 年口径卖在 90% 还能再好一点（+23.1%）。<br>
+<b>对"周期性大盘"的含义</b>：沪深300 不是长期成长盘，择时的价值不在"找到便宜买点"，而在"贵了必须走"。买入信号只提供微弱优势（12 个月前瞻收益 3 年 7.1%、5 年 5.4%，无条件平均 4.15%），但胜率仅 56% / 43%，单靠入场择时不足以稳定跑赢。
+</div>
+
+<div class="grid">
+  <div class="kpi"><div class="k">3 年窗口机会</div><div class="v">9 次</div><div class="d">21 个月处于 20% 以下</div></div>
+  <div class="kpi"><div class="k">5 年窗口机会</div><div class="v">7 次</div><div class="d">20 个月处于 20% 以下</div></div>
+  <div class="kpi"><div class="k">买入后持有至今</div><div class="v c-down">+4.7%</div><div class="d">3 年窗口平均累计</div></div>
+  <div class="kpi" style="border-color:#fecaca"><div class="k">首破 80% 卖出</div><div class="v c-up">+22.4%</div><div class="d">5 年窗口平均累计</div></div>
+</div>
+
+<h2>一、什么时候出现了 20% 买入机会</h2>
+<div class="card"><div id="sig" class="chart" style="height:390px"></div>
+<div class="note">折线＝滚动 PE 分位；圆点＝独立买入机会的首次触发月。3 年 / 5 年分别画在两条线上。</div></div>
+<p>两类机会高度重叠：2020-03、2022-04、2022-07、2023-05、2023-08 这五次两边同时触发。区别在于 3 年窗口多抓了 2019 年的三次（2019-01 / 05 / 11）和 2023-02，5 年窗口多抓了 2024-08。3 年窗口反应更快、机会更多；5 年窗口更严格、噪声更少。</p>
+
+<h2>二、每次机会买入后，逐年发生了什么</h2>
+<div class="card"><h3>5 年窗口：7 次机会的前瞻收益</h3><table>
+<thead><tr><th class="nm">机会</th><th>买入月</th><th>结束月</th><th>月数</th><th>PE</th><th>分位</th><th>收盘</th><th>+12月</th><th>+24月</th><th>+36月</th><th>至今</th><th>80%卖</th><th>90%卖</th></tr></thead>
+<tbody><tr><td class='nm'>#1</td><td>2020-03</td><td>2020-03</td><td>1</td><td>10.85</td><td>11.7%</td><td>3686</td><td>+37.0%</td><td>+14.6%</td><td>+9.9%</td><td class='c-up'>+7.3%</td><td>+30.7% / 5月</td><td>+24.4% / 6月</td></tr><tr><td class='nm'>#2</td><td>2022-04</td><td>2022-05</td><td>2</td><td>11.21</td><td>11.7%</td><td>4016</td><td>+0.3%</td><td>-10.3%</td><td>-6.1%</td><td class='c-down'>-1.5%</td><td>+15.5% / 41月</td><td>+17.3% / 46月</td></tr><tr><td class='nm'>#3</td><td>2022-07</td><td>2022-12</td><td>6</td><td>11.44</td><td>15.0%</td><td>4170</td><td>-3.7%</td><td>-17.5%</td><td>-2.3%</td><td class='c-down'>-5.2%</td><td>+11.3% / 38月</td><td>+13.0% / 43月</td></tr><tr><td class='nm'>#4</td><td>2023-02</td><td>2023-02</td><td>1</td><td>11.17</td><td>20.0%</td><td>4070</td><td>-13.6%</td><td>-4.4%</td><td>+15.8%</td><td class='c-down'>-2.8%</td><td>+14.0% / 31月</td><td>+15.8% / 36月</td></tr><tr><td class='nm'>#5</td><td>2023-05</td><td>2023-06</td><td>2</td><td>10.93</td><td>16.7%</td><td>3798</td><td>-5.8%</td><td>+1.1%</td><td>+28.8%</td><td class='c-up'>+4.1%</td><td>+22.2% / 28月</td><td>+24.0% / 33月</td></tr><tr><td class='nm'>#6</td><td>2023-08</td><td>2024-02</td><td>7</td><td>10.99</td><td>20.0%</td><td>3765</td><td>-11.8%</td><td>+19.4%</td><td>+22.8%</td><td class='c-up'>+5.0%</td><td>+23.2% / 25月</td><td>+25.1% / 30月</td></tr><tr><td class='nm'>#7</td><td>2024-08</td><td>2024-08</td><td>1</td><td>10.86</td><td>16.7%</td><td>3321</td><td>+35.4%</td><td>+39.2%</td><td>—</td><td class='c-up'>+19.1%</td><td>+39.7% / 13月</td><td>+41.8% / 18月</td></tr></tbody></table></div>
+<div class="card"><h3>3 年窗口：9 次机会</h3><table>
+<thead><tr><th class="nm">机会</th><th>买入月</th><th>结束月</th><th>月数</th><th>PE</th><th>分位</th><th>收盘</th><th>+12月</th><th>+24月</th><th>+36月</th><th>至今</th><th>80%卖</th><th>90%卖</th></tr></thead>
+<tbody><tr><td class='nm'>#1</td><td>2019-01</td><td>2019-01</td><td>1</td><td>10.74</td><td>13.9%</td><td>3202</td><td>+25.1%</td><td>+67.2%</td><td>+42.5%</td><td class='c-up'>+23.5%</td><td>+50.4% / 19月</td><td>+43.3% / 20月</td></tr><tr><td class='nm'>#2</td><td>2019-05</td><td>2019-05</td><td>1</td><td>11.48</td><td>19.4%</td><td>3630</td><td>+6.5%</td><td>+46.9%</td><td>+12.7%</td><td class='c-up'>+8.9%</td><td>+32.7% / 15月</td><td>+26.4% / 16月</td></tr><tr><td class='nm'>#3</td><td>2019-11</td><td>2019-11</td><td>1</td><td>11.46</td><td>16.7%</td><td>3829</td><td>+29.6%</td><td>+26.2%</td><td>+0.6%</td><td class='c-up'>+3.3%</td><td>+25.8% / 9月</td><td>+19.8% / 10月</td></tr><tr><td class='nm'>#4</td><td>2020-03</td><td>2020-03</td><td>1</td><td>10.85</td><td>13.9%</td><td>3686</td><td>+37.0%</td><td>+14.6%</td><td>+9.9%</td><td class='c-up'>+7.3%</td><td>+30.7% / 5月</td><td>+24.4% / 6月</td></tr><tr><td class='nm'>#5</td><td>2022-04</td><td>2022-05</td><td>2</td><td>11.21</td><td>5.6%</td><td>4016</td><td>+0.3%</td><td>-10.3%</td><td>-6.1%</td><td class='c-down'>-1.5%</td><td>-3.1% / 30月</td><td>-3.1% / 30月</td></tr><tr><td class='nm'>#6</td><td>2022-07</td><td>2022-12</td><td>6</td><td>11.44</td><td>11.1%</td><td>4170</td><td>-3.7%</td><td>-17.5%</td><td>-2.3%</td><td class='c-down'>-5.2%</td><td>-6.7% / 27月</td><td>-6.7% / 27月</td></tr><tr><td class='nm'>#7</td><td>2023-02</td><td>2023-02</td><td>1</td><td>11.17</td><td>19.4%</td><td>4070</td><td>-13.6%</td><td>-4.4%</td><td>+15.8%</td><td class='c-down'>-2.8%</td><td>-4.4% / 20月</td><td>-4.4% / 20月</td></tr><tr><td class='nm'>#8</td><td>2023-05</td><td>2023-06</td><td>2</td><td>10.93</td><td>13.9%</td><td>3798</td><td>-5.8%</td><td>+1.1%</td><td>+28.8%</td><td class='c-up'>+4.1%</td><td>+2.4% / 17月</td><td>+2.4% / 17月</td></tr><tr><td class='nm'>#9</td><td>2023-08</td><td>2024-01</td><td>6</td><td>10.99</td><td>19.4%</td><td>3765</td><td>-11.8%</td><td>+19.4%</td><td>+22.8%</td><td class='c-up'>+5.0%</td><td>+3.3% / 14月</td><td>+3.3% / 14月</td></tr></tbody></table>
+<div class="note">"80%卖 / 90%卖"＝买入后首次分位回到该阈值时离场的收益与持有月数；"至今"＝持有到 2026-11。</div></div>
+
+<div class="card"><div id="fw" class="chart"></div>
+<div class="note">5 年窗口 7 次机会的 +12 月收益。红色虚线为全样本无条件平均 +4.15%（任意月份买入的 12 个月平均收益）。</div></div>
+<p>最成功的两次是 <b>2020-03</b>（12 个月 +37.0%）和 <b>2024-08</b>（+35.4%），共同点是指数刚经历急跌、PE 快速压缩到 10.9 倍附近。最差的是 <b>2023-02</b>（-13.6%），当时 PE 也低，但企业盈利在下滑，低估值只是"价值陷阱"的起点。可见<b>低分位本身不足以判定买点</b>。</p>
+
+<h2>三、每年对比大盘：涨幅差距怎么变</h2>
+<div class="card"><div id="eq" class="chart"></div>
+<div class="note">基准＝2019-01 投入 1 元买入沪深300 并持有；信号净值＝每次 20% 机会各投 1 元，按已出现信号数取平均。2024 年后没有新信号，两条线的年度涨跌完全一致，差距不再变化。</div></div>
+<div class="card"><table>
+<thead><tr><th class="nm">年份</th><th>月末</th><th>大盘净值</th><th>大盘当年</th><th>3y信号净值</th><th>3y当年</th><th>5y信号净值</th><th>5y当年</th><th>累计信号数 3y/5y</th></tr></thead>
+<tbody><tr><td class='nm'>2019</td><td>2019-12</td><td>1.280</td><td>+28.0%</td><td>1.159</td><td>+15.9%</td><td class='c-down'>—</td><td>—</td><td>3/0</td></tr><tr><td class='nm'>2020</td><td>2020-12</td><td>1.628</td><td>+27.2%</td><td>1.460</td><td>+25.9%</td><td class='c-up'>1.414</td><td>—</td><td>4/1</td></tr><tr><td class='nm'>2021</td><td>2021-12</td><td>1.543</td><td>-5.2%</td><td>1.384</td><td>-5.2%</td><td class='c-up'>1.340</td><td>-5.2%</td><td>4/1</td></tr><tr><td class='nm'>2022</td><td>2022-12</td><td>1.209</td><td>-21.6%</td><td>1.038</td><td>-25.0%</td><td class='c-up'>0.981</td><td>-26.8%</td><td>6/3</td></tr><tr><td class='nm'>2023</td><td>2023-12</td><td>1.072</td><td>-11.4%</td><td>0.909</td><td>-12.5%</td><td class='c-up'>0.878</td><td>-10.5%</td><td>9/6</td></tr><tr><td class='nm'>2024</td><td>2024-12</td><td>1.229</td><td>+14.7%</td><td>1.042</td><td>+14.7%</td><td class='c-up'>1.032</td><td>+17.6%</td><td>9/7</td></tr><tr><td class='nm'>2025</td><td>2025-12</td><td>1.446</td><td>+17.7%</td><td>1.226</td><td>+17.7%</td><td class='c-up'>1.214</td><td>+17.7%</td><td>9/7</td></tr><tr><td class='nm'>2026</td><td>2026-11</td><td>1.235</td><td>-14.6%</td><td>1.047</td><td>-14.6%</td><td class='c-up'>1.037</td><td>-14.6%</td><td>9/7</td></tr></tbody></table></div>
+<p>2019 年末大盘 +28.0%，3 年信号组合只有 +15.9%——因为它在 2019-05 和 2019-11 又追加了两次，买在了更高的位置。2022-2023 年信号持续触发，净值被一路摊薄到 0.878~0.909，而大盘还有 1.072。到 2026-11，大盘净值 1.235，信号组合只有 1.047 / 1.037。<b>差距是在 2019-2023 的"反复买入"中拉开的，不是在 2024 年之后的持有阶段。</b></p>
+
+<h2>四、买入 vs 卖出：哪个更重要</h2>
+<div class="card"><div id="cmp" class="chart"></div>
+<div class="note">同一批 20% 买入机会，三种退出方式的平均累计收益。</div></div>
+<p>结论非常清楚：<b>买入时点只贡献微弱优势，卖出时点决定成败</b>。5 年窗口从"持有至今 +3.7%"变成"首次 80% 卖出 +22.4%"，差 18.7 个百分点；3 年从 +4.7% 到 +14.6%，差 9.9 个百分点。这也解释了为什么之前的完整回测里，20/80 规则能做到年化 4.61%~4.99%，而单纯的低 PE 买入做不到。</p>
+
+<h2>五、对"稳定性前提下追求最大收益"的回答</h2>
+<div class="card"><ul>
+<li><b>买入侧：20% 是合理阈值，但需要过滤。</b>3 年窗口 12 个月前瞻收益 7.1%、5 年 5.4%，都高于无条件平均 4.15%，但胜率只有 56% / 43%。建议把"第一次跌破 20%"当作机会，而非每次跌破都买——连续下跌途中的重复信号（2022-07~12、2023-08~2024-01）是主要亏损来源。</li>
+<li><b>卖出侧：80% 是必须执行的纪律。</b>没有卖出规则，低 PE 买入在沪深300 上几乎没有意义；有卖出规则，同样的买点平均收益提升 10~19 个百分点。5 年窗口可放宽到 85%~90%，3 年窗口 80% 已经够好。</li>
+<li><b>沪深300 的周期性要这样用</b>：它长期不涨（2019-01 到 2026-11 年化仅 2.73%），但波动巨大（2019-2020 两年 +62%，2021-2023 三年 -30%）。这种形态下，择时收益来自"高位不持有"，不是"低位精准抄底"。</li>
+<li><b>不要追求"每次都买在最低"</b>。9 次机会中最深的 5.6% 分位（2022-04）12 个月只赚 0.3%；而 11.7% 分位的 2020-03 赚 37%。深度分位不等于好收益。</li>
+</ul></div>
+
+<div class="dis" style="margin-top:22px">
+<b>免责声明</b>：以上内容基于公开数据和量化分析，仅供参考，不构成投资建议。市场有风险，投资需谨慎。任何投资决策应结合个人风险承受能力、资金状况和投资目标独立判断，必要时咨询持牌专业机构。过往表现不预示未来收益。
+</div>
+<div class="note">数据源：本地 SQLite <code>data/ashare.db</code> → <code>val_index_pe_lg</code>（2019-01~2026-11-20）· 脚本 <code>scripts/backtest_pe_entry_events.py</code> · 生成 2026-11-23 · 不含股息、单边成本未计入事件收益</div>
+
+</div>
+<script>
+var D = {"ym": ["2019-01", "2019-02", "2019-03", "2019-04", "2019-05", "2019-06", "2019-07", "2019-08", "2019-09", "2019-10", "2019-11", "2019-12", "2020-01", "2020-02", "2020-03", "2020-04", "2020-05", "2020-06", "2020-07", "2020-08", "2020-09", "2020-10", "2020-11", "2020-12", "2021-01", "2021-02", "2021-03", "2021-04", "2021-05", "2021-06", "2021-07", "2021-08", "2021-09", "2021-10", "2021-11", "2021-12", "2022-01", "2022-02", "2022-03", "2022-04", "2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11"], "p3": [13.9, 41.7, 50.0, 41.7, 19.4, 38.9, 36.1, 22.2, 25.0, 22.2, 16.7, 50.0, 38.9, 22.2, 13.9, 38.9, 30.6, 66.7, 80.6, 97.2, 88.9, 88.9, 97.2, 100.0, 100.0, 97.2, 88.9, 75.0, 83.3, 83.3, 66.7, 61.1, 63.9, 63.9, 44.4, 66.7, 52.8, 55.6, 25.0, 5.6, 8.3, 44.4, 11.1, 5.6, 2.8, 2.8, 8.3, 11.1, 22.2, 19.4, 25.0, 33.3, 13.9, 16.7, 36.1, 19.4, 13.9, 13.9, 8.3, 5.6, 5.6, 27.8, 47.2, 66.7, 66.7, 66.7, 58.3, 25.0, 94.4, 80.6, 86.1, 88.9, 86.1, 91.7, 88.9, 72.2, 80.6, 97.2, 97.2, 100.0, 100.0, 94.4, 91.7, 100.0, 100.0, 94.4, 88.9, 100.0, 97.2, 94.4, 91.7, 69.4, 61.1, 50.0, 63.9], "p5": [26.7, 46.7, 56.7, 46.7, 31.7, 45.0, 43.3, 33.3, 33.3, 26.7, 21.7, 48.3, 38.3, 25.0, 11.7, 38.3, 30.0, 61.7, 86.7, 98.3, 91.7, 93.3, 98.3, 100.0, 100.0, 98.3, 91.7, 71.7, 86.7, 88.3, 63.3, 46.7, 50.0, 50.0, 36.7, 65.0, 45.0, 50.0, 25.0, 11.7, 13.3, 46.7, 15.0, 10.0, 5.0, 1.7, 8.3, 10.0, 21.7, 20.0, 25.0, 31.7, 16.7, 18.3, 31.7, 20.0, 16.7, 11.7, 6.7, 3.3, 3.3, 18.3, 30.0, 48.3, 45.0, 43.3, 36.7, 16.7, 75.0, 55.0, 56.7, 61.7, 56.7, 60.0, 58.3, 45.0, 53.3, 66.7, 71.7, 81.7, 83.3, 81.7, 80.0, 88.3, 91.7, 88.3, 86.7, 96.7, 96.7, 96.7, 95.0, 80.0, 71.7, 61.7, 76.7], "mark3": [["2019-01", 13.9], ["2019-05", 19.4], ["2019-11", 16.7], ["2020-03", 13.9], ["2022-04", 5.6], ["2022-07", 11.1], ["2023-02", 19.4], ["2023-05", 13.9], ["2023-08", 19.4]], "mark5": [["2020-03", 11.7], ["2022-04", 11.7], ["2022-07", 15.0], ["2023-02", 20.0], ["2023-05", 16.7], ["2023-08", 20.0], ["2024-08", 16.7]], "years": ["2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"], "bench": [1.2795, 1.6277, 1.5431, 1.2093, 1.0717, 1.229, 1.4461, 1.2352], "sig3": [1.1594, 1.4596, 1.3837, 1.0383, 0.9087, 1.0422, 1.2263, 1.0474], "sig5": [null, 1.4137, 1.3402, 0.9809, 0.8776, 1.0319, 1.2142, 1.0371], "labels5": ["#1 2020-03", "#2 2022-04", "#3 2022-07", "#4 2023-02", "#5 2023-05", "#6 2023-08", "#7 2024-08"], "fwd12_5": [37.0, 0.3, -3.7, -13.6, -5.8, -11.8, 35.4], "fwd12_3": [25.1, 6.5, 29.6, 37.0, 0.3, -3.7, -13.6, -5.8, -11.8], "uncond12": 4.15, "comp": ["持有至今", "首次80%卖出", "首次90%卖出"], "comp3": [4.7, 14.6, 11.7], "comp5": [3.7, 22.4, 23.1]};
+echarts.init(document.getElementById('sig')).setOption({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['3年分位','5年分位','3年买入信号','5年买入信号'], top: 0 },
+  grid: { left: 52, right: 22, top: 44, bottom: 32 },
+  xAxis: { type: 'category', data: D.ym, axisLabel: { interval: 11 } },
+  yAxis: { type: 'value', name: '分位 %', min: 0, max: 100 },
+  series: [
+    { name: '3年分位', type: 'line', data: D.p3, symbol: 'none', lineStyle: { width: 1.2, color: '#93c5fd' },
+      markLine: { silent: true, symbol: 'none', label: { formatter: '20%', fontSize: 10, position: 'end' },
+        lineStyle: { color: '#cbd5e1', type: 'dashed' }, data: [{ yAxis: 20 }] } },
+    { name: '5年分位', type: 'line', data: D.p5, symbol: 'none', lineStyle: { width: 2, color: '#c62828' } },
+    { name: '3年买入信号', type: 'scatter', data: D.mark3, symbolSize: 11, itemStyle: { color: '#2563eb' } },
+    { name: '5年买入信号', type: 'scatter', data: D.mark5, symbolSize: 14, symbol: 'diamond', itemStyle: { color: '#c62828' } }
+  ]
+});
+
+echarts.init(document.getElementById('fw')).setOption({
+  tooltip: { trigger: 'axis' },
+  grid: { left: 52, right: 20, top: 20, bottom: 74 },
+  xAxis: { type: 'category', data: D.labels5, axisLabel: { rotate: 30, fontSize: 10 } },
+  yAxis: { type: 'value', name: '+12月收益 %' },
+  series: [{ type: 'bar', data: D.fwd12_5,
+    itemStyle: { color: function(p){ return p.value >= 0 ? '#c62828' : '#1b7f4e'; } },
+    markLine: { silent: true, symbol: 'none',
+      data: [{ yAxis: D.uncond12, lineStyle: { color: '#475569', type: 'dashed' },
+        label: { formatter: '无条件均值 4.15%', fontSize: 10, position: 'end' } }] } }]
+});
+
+echarts.init(document.getElementById('eq')).setOption({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['大盘(2019-01投入)','3年信号平均','5年信号平均'], top: 0 },
+  grid: { left: 52, right: 20, top: 44, bottom: 32 },
+  xAxis: { type: 'category', data: D.years },
+  yAxis: { type: 'value', name: '净值' },
+  series: [
+    { name: '大盘(2019-01投入)', type: 'line', data: D.bench, symbol: 'circle', symbolSize: 7,
+      lineStyle: { width: 2.6, color: '#0f172a' }, itemStyle: { color: '#0f172a' } },
+    { name: '3年信号平均', type: 'line', data: D.sig3, symbol: 'circle', symbolSize: 6,
+      lineStyle: { width: 2, color: '#2563eb' }, itemStyle: { color: '#2563eb' } },
+    { name: '5年信号平均', type: 'line', data: D.sig5, symbol: 'circle', symbolSize: 6,
+      lineStyle: { width: 2, color: '#c62828' }, itemStyle: { color: '#c62828' } }
+  ]
+});
+
+echarts.init(document.getElementById('cmp')).setOption({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['3年窗口','5年窗口'], top: 0 },
+  grid: { left: 52, right: 20, top: 44, bottom: 32 },
+  xAxis: { type: 'category', data: D.comp },
+  yAxis: { type: 'value', name: '平均累计收益 %' },
+  series: [
+    { name: '3年窗口', type: 'bar', data: D.comp3, itemStyle: { color: '#93c5fd' },
+      label: { show: true, position: 'top', formatter: '{c}%', fontSize: 11 } },
+    { name: '5年窗口', type: 'bar', data: D.comp5, itemStyle: { color: '#c62828' },
+      label: { show: true, position: 'top', formatter: '{c}%', fontSize: 11 } }
+  ]
+});
+
+window.addEventListener('resize', function(){
+  ['sig','fw','eq','cmp'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) { var c = echarts.getInstanceByDom(el); if (c) c.resize(); }
+  });
+});
+</script>
+</body></html>

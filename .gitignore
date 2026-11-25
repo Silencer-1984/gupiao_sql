@@ -1,0 +1,35 @@
+# 环境
+.venv/
+node_modules/
+web/node_modules/
+
+# 构建产物
+web/dist/
+deploy/chart/static/
+deploy/chart/preview*.png
+
+# Python
+__pycache__/
+*.py[cod]
+
+# 数据（体积大，可由脚本重建）
+data/*.db
+data/*.db-*
+data/*.json
+data/*.csv
+data/*.png
+data/.*checkpoint*
+deploy/chart/data/
+
+# 工作区与发布标记
+.workbuddy/
+.wbapp_*.genie
+
+# 对话导出
+conv2.json
+transcript.txt
+
+# 杂项
+*.log
+.DS_Store
+Thumbs.db

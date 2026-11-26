@@ -44,10 +44,11 @@ export default function Trend() {
   const [gran, setGran] = useState(init.gran || 'W')
   const [mode, setMode] = useState(init.mode || 'point')
   const [inds, setInds] = useState(init.ind != null ? init.ind.split(',').filter(Boolean) : ['pe_ttm'])
-  const [pcts, setPcts] = useState(init.pct != null ? init.pct.split(',').filter(Boolean) : ['pe_ttm'])
+  const [pcts, setPcts] = useState(init.pct != null ? init.pct.split(',').filter(Boolean) : [])
   const [pctWin, setPctWin] = useState(init.pct_win || '3Y')
   const [bench, setBench] = useState(init.bench || '')
   const [data, setData] = useState(null)
+  const [benchData, setBenchData] = useState(null)   // 对比图独立数据，切换对比标的不动主图
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
 
@@ -67,18 +68,29 @@ export default function Trend() {
     const pValid = info.indicators.filter((i) => i.pct_line).map((i) => i.key)
     const keep = inds.filter((k) => valid.includes(k))
     setInds(keep.length ? keep : valid.slice(0, 1))
-    const keepPct = pcts.filter((k) => pValid.includes(k))
-    setPcts(keepPct.length ? keepPct : pValid.slice(0, 1))
+    // 分位线是独立功能：切换标的时不自动开启，只剔除新标的不支持的项
+    setPcts((cur) => cur.filter((k) => pValid.includes(k)))
   }
 
   useEffect(() => {
     if (!code) return
     setLoading(true)
-    api.trend({ code, range, gran, mode, ind: inds.join(','), pct: pcts.join(','), pctWin, bench })
+    // 主图请求不带 bench：切换对比标的不会重新拉主图数据
+    api.trend({ code, range, gran, mode, ind: inds.join(','), pct: pcts.join(','), pctWin, bench: '' })
       .then((r) => { setData(r); setErr('') })
       .catch((e) => { setErr(String(e)); setData(null) })
       .finally(() => setLoading(false))
-  }, [code, range, gran, mode, inds, pcts, pctWin, bench])
+  }, [code, range, gran, mode, inds, pcts, pctWin])
+
+  // 对比图独立请求；range/gran 跟随主图，其余与主图完全隔离
+  useEffect(() => {
+    if (!bench || bench === code) { setBenchData(null); return }
+    let alive = true
+    api.trend({ code, range, gran, mode: 'point', ind: '', pct: '', pctWin, bench })
+      .then((r) => { if (alive) setBenchData(r.bench || null) })
+      .catch(() => { if (alive) setBenchData(null) })
+    return () => { alive = false }
+  }, [code, range, gran, bench, pctWin])
 
   const info = meta?.by_code?.[code]
   const list = meta?.indexes || []
@@ -100,8 +112,10 @@ export default function Trend() {
   const axisKeys = useMemo(() => {
     const keys = (data?.indicators || []).map((o) => o.key)
     refLines.forEach((r) => { if (!keys.includes(r.ind)) keys.push(r.ind) })
-    return keys
-  }, [data, refLines])
+    // 只保留当前标的真正支持的指标。切换标的瞬间 data 仍是旧标的，
+    // 若不丢弃旧 key，series 的 yAxisIndex 会指向不存在的轴导致 ECharts 崩溃。
+    return keys.filter((k) => indOptions.some((o) => o.key === k))
+  }, [data, refLines, indOptions])
   const colorOf = (k) => IND_COLORS[axisKeys.indexOf(k) % IND_COLORS.length] || IND_COLORS[0]
 
   // ---------- 主图 ----------
@@ -221,10 +235,10 @@ export default function Trend() {
 
   // ---------- 对比图 ----------
   const benchOption = useMemo(() => {
-    if (!data?.bench || !pts.length) return null
+    if (!benchData || !pts.length) return null
     const dates = pts.map((p) => p.date)
-    const bm = new Map(data.bench.points.map((p) => [p.date, p.value]))
-    const bNames = data.bench.name
+    const bm = new Map(benchData.points.map((p) => [p.date, p.value]))
+    const bNames = benchData.name
     return {
       animationDuration: 420,
       grid: { left: 6, right: 6, top: 42, bottom: 30, containLabel: true },
@@ -236,7 +250,7 @@ export default function Trend() {
           const d = dates[i]
           const p = pts[i]
           const bv = bm.get(d)
-          const bAll = data.bench.points
+          const bAll = benchData.points
           const bi = bAll.findIndex((x) => x.date === d)
           const bp = bi > 0 ? (bAll[bi].value / bAll[bi - 1].value - 1) * 100 : null
           return `<div style="font-weight:600;margin-bottom:3px">${d}</div>` +
@@ -269,7 +283,7 @@ export default function Trend() {
           smooth: 0.1, lineStyle: { width: 2, color: BENCH_COLOR }, z: 3 },
       ],
     }
-  }, [pts, data])
+  }, [pts, data, benchData])
 
   if (err) return <div className="ds-card ds-empty"><Empty description={`加载失败：${err}`} /></div>
   if (!meta) return <div className="ds-loading"><Spin size="large" tip="正在准备数据…" /></div>
@@ -398,21 +412,21 @@ export default function Trend() {
           </div>
         </section>
 
-        {data?.bench && benchOption && (
+        {benchData && benchOption && (
           <section className="ds-card">
             <div className="ds-card-head">
               <h2>指数对比</h2>
-              <Text type="secondary" style={{ fontSize: 12 }}>{data.name} vs {data.bench.name} · 各自独立纵轴</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>{data.name} vs {benchData.name} · 各自独立纵轴</Text>
             </div>
             <div className="ds-stats">
               <div className="ds-stat"><span>{data.name} 区间涨跌</span><b style={{ color: stats.ret >= 0 ? RED : GREEN }}>{pct(stats.ret)}</b></div>
-              <div className="ds-stat"><span>{data.bench.name} 区间涨跌</span><b style={{ color: data.bench.ret >= 0 ? RED : GREEN }}>{pct(data.bench.ret)}</b></div>
-              <div className="ds-stat"><span>强弱差</span><b style={{ color: stats.ret - data.bench.ret >= 0 ? RED : GREEN }}>{pct(stats.ret - data.bench.ret)}</b></div>
+              <div className="ds-stat"><span>{benchData.name} 区间涨跌</span><b style={{ color: benchData.ret >= 0 ? RED : GREEN }}>{pct(benchData.ret)}</b></div>
+              <div className="ds-stat"><span>强弱差</span><b style={{ color: stats.ret - benchData.ret >= 0 ? RED : GREEN }}>{pct(stats.ret - benchData.ret)}</b></div>
             </div>
             <EChart option={benchOption} height={250} />
             <div className="ds-legend">
               <span>{swatch(IDX_COLOR)}{data.name}</span>
-              <span>{swatch(BENCH_COLOR)}{data.bench.name}</span>
+              <span>{swatch(BENCH_COLOR)}{benchData.name}</span>
             </div>
           </section>
         )}

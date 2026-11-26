@@ -28,7 +28,7 @@ def trend_meta():
 def trend(code: str = "000300", range: str = "1Y", gran: str = "", mode: str = "pct",
           ind: str = "", pct_win: str = "3Y", bench: str = "", pct: str = ""):
     inds = [x for x in ind.split(",") if x]
-    pcts = [x for x in pct.split(",") if x] if pct else None
+    pcts = [x for x in pct.split(",") if x]   # 空就是空，绝不回退到 inds
     return T.trend(code=code, rng=range, gran=gran or None, mode=mode,
                    inds=inds, pct_win=pct_win, bench=bench, pct=pcts)
 

@@ -311,10 +311,8 @@ def trend(code="000300", rng="1Y", gran=None, mode="pct", inds=None,
     inds 控制折线（最多 2 条）；pct 独立控制分位线，可不含在 inds 中。
     """
     inds = [k for k in (inds or []) if k][:2]
-    if pct is None:
-        pct_keys = [k for k in inds if k in PCT_IND]
-    else:
-        pct_keys = [k for k in pct if k in PCT_IND]
+    # 分位线完全独立：只有显式传入的 pct 才画，绝不以指标曲线兜底
+    pct_keys = [k for k in (pct or []) if k in PCT_IND]
     all_keys = list(dict.fromkeys(inds + pct_keys))
     c = conn()
     price = _raw_price(c, code)
